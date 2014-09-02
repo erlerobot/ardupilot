@@ -296,6 +296,11 @@ bool AP_InertialSensor_MPU6000::update( void )
     _accel[0].z *= accel_scale.z;
     _accel[0] -= _accel_offset[0];
 
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+    _gyro[0].rotate(ROTATION_PITCH_180_YAW_90);
+    _accel[0].rotate(ROTATION_PITCH_180_YAW_90);
+#endif
+
     if (_last_filter_hz != _mpu6000_filter) {
         if (_spi_sem->take(10)) {
             _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
