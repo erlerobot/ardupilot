@@ -1,0 +1,53 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          APM4
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Runs ardupilot at startup
+# Description:       This file should be used to construct scripts to be
+#                    placed in /etc/init.d.
+### END INIT INFO
+
+# Author: Víctor Mayoral Vilches <victor@erlerobot.com>
+#
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+# Quick start-stop-daemon example, derived from Debian /etc/init.d/ssh
+set -e
+ 
+# Must be a valid filename
+NAME=apm4
+PIDFILE=/var/run/$NAME.pid
+#This is the command to be run, give the full pathname
+#DAEMON="/root/ardupilot/Tools/Linux_HAL_Essentials/startup.sh"
+DAEMON="/etc/init.d/apm4-startup.sh"
+#DAEMON_OPTS="--options 4"
+ 
+case "$1" in
+  start)
+        echo -n "Starting daemon: "$NAME
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
+        echo "."
+	;;
+  stop)
+        echo -n "Stopping daemon: "$NAME
+	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+        echo "."
+	;;
+  restart)
+        echo -n "Restarting daemon: "$NAME
+	start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile $PIDFILE
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
+	echo "."
+	;;
+ 
+  *)
+	echo "Usage: "$1" {start|stop|restart}"
+	exit 1
+esac
+ 
+exit 0
