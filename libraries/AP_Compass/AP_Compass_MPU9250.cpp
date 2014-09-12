@@ -149,7 +149,7 @@ void AP_Compass_MPU9250::show_all_registers(){
 }
 
 /*
-The data is on 2s complement, so we have to be carfeul with that
+//TODO The data is on 2s complement, so we have to be carfeul with that
 
 uint16_t treat2sComplemet(uint16_t u){
     if(u != 0x0000){
