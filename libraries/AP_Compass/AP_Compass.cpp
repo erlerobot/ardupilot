@@ -153,10 +153,10 @@ AP_Compass::detect_instance(uint8_t instance)
     new_compass = new AP_Compass_HMC5843(*this);
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4 && COMPASS_EXPECTED_DEV_ID != 73225 //PX4
     new_compass = new AP_Compass_PX4(*this);
-#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-    new_compass = new AP_Compass_MPU9250(*this);
-#else
-    new_compass = new AP_Compass_TEST(*this); //TEST-DRIVER, we will use it when the compass type is unknown
+//#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+//    new_compass = new AP_Compass_MPU9250(*this);
+//#else
+//    new_compass = new AP_Compass_TEST(*this); //TEST-DRIVER, we will use it when the compass type is unknown
 #endif
  
 	if (new_compass != NULL) {
