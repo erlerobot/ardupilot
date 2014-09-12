@@ -1,14 +1,14 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#ifndef AP_Compass_VRBRAIN_H
-#define AP_Compass_VRBRAIN_H
+#ifndef AP_Compass_TEST_H
+#define AP_Compass_TEST_H
 
 #include <AP_Compass.h>
 
-class AP_Compass_VRBRAIN : public AP_Compass_Backend
+class AP_Compass_TEST : public AP_Compass_Backend
 {
 public:
-    AP_Compass_VRBRAIN(AP_Compass &_compass);
+    AP_Compass_TEST(AP_Compass &_compass);
     bool        init(void);
     bool        read(void);
     void        accumulate(void);
@@ -28,5 +28,5 @@ private:
     bool _is_external[COMPASS_MAX_INSTANCES];
 };
 
-#endif // AP_Compass_VRBRAIN_H
+#endif // AP_Compass_PX4_H
 

@@ -3,15 +3,12 @@
 #ifndef AP_Compass_PX4_H
 #define AP_Compass_PX4_H
 
-#include "Compass.h"
+#include <AP_Compass.h>
 
-class AP_Compass_PX4 : public Compass
+class AP_Compass_PX4 : public AP_Compass_Backend
 {
 public:
-    AP_Compass_PX4() : Compass() {
-        product_id = AP_COMPASS_TYPE_PX4;
-        _num_instances = 0;
-    }
+    AP_Compass_PX4(AP_Compass &_compass);
     bool        init(void);
     bool        read(void);
     void        accumulate(void);
