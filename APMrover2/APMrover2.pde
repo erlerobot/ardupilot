@@ -216,6 +216,10 @@ static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::spi);
  #error Unrecognized CONFIG_BARO setting
 #endif
 
+//From now on, the AP_Compass frontend will be the class that 
+//will specify the the type of the Compass obect
+static AP_Compass compass;
+/*
 #if CONFIG_COMPASS == HAL_COMPASS_PX4
 static AP_Compass_PX4 compass;
 #elif CONFIG_COMPASS == HAL_COMPASS_VRBRAIN
@@ -227,6 +231,8 @@ static AP_Compass_HIL compass;
 #else
  #error Unrecognized CONFIG_COMPASS setting
 #endif
+*/
+
 
 #if CONFIG_INS_TYPE == HAL_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
 AP_ADC_ADS7844 apm1_adc;

@@ -1,5 +1,5 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#include "Compass.h"
+#include <AP_Compass.h>
 
 // don't allow any axis of the offset to go above 2000
 #define COMPASS_OFS_LIMIT 2000
@@ -25,7 +25,7 @@
  *  noise.
  */
 void
-Compass::learn_offsets(void)
+AP_Compass::learn_offsets(void)
 {
     if (_learn == 0) {
         // auto-calibration is disabled
