@@ -40,6 +40,17 @@ extern const AP_HAL::HAL& hal;
 
 
 // Public Methods //////////////////////////////////////////////////////////////
+// constructor
+AP_Compass_VRBRAIN::AP_Compass_VRBRAIN(AP_Compass &_compass):
+    AP_Compass_Backend(_compass)
+{
+    compass.product_id = AP_COMPASS_TYPE_VRBRAIN;
+    compass._num_instances = 0;
+//    hal.console->println("VRBRAIN");
+}
+
+
+
 
 bool AP_Compass_VRBRAIN::init(void)
 {
@@ -58,7 +69,7 @@ bool AP_Compass_VRBRAIN::init(void)
 
     for (uint8_t i=0; i<_num_instances; i++) {
         // get device id
-        _dev_id[i] = ioctl(_mag_fd[i], DEVIOCGDEVICEID, 0);
+        compass._dev_id[i] = ioctl(_mag_fd[i], DEVIOCGDEVICEID, 0);
 
         // average over up to 20 samples
         if (ioctl(_mag_fd[i], SENSORIOCSQUEUEDEPTH, 20) != 0) {
@@ -78,7 +89,7 @@ bool AP_Compass_VRBRAIN::init(void)
         }
         _count[0] = 0;
         _sum[i].zero();
-        _healthy[i] = false;
+        compass._healthy[i] = false;
     }
 
     // give the driver a chance to run, and gather one sample
@@ -97,7 +108,7 @@ bool AP_Compass_VRBRAIN::read(void)
 
     // consider the compass healthy if we got a reading in the last 0.2s
     for (uint8_t i=0; i<_num_instances; i++) {
-        _healthy[i] = (hal.scheduler->micros64() - _last_timestamp[i] < 200000);
+        compass._healthy[i] = (hrt_absolute_time() - _last_timestamp[i] < 200000);
     }
 
     for (uint8_t i=0; i<_num_instances; i++) {
@@ -116,31 +127,31 @@ bool AP_Compass_VRBRAIN::read(void)
 
         if (_is_external[i]) {
             // add user selectable orientation
-            _sum[i].rotate((enum Rotation)_orientation.get());
+            _sum[i].rotate((enum Rotation)compass._orientation.get());
         } else {
             // add in board orientation from AHRS
-            _sum[i].rotate(_board_orientation);
+            _sum[i].rotate(compass._board_orientation);
         }
 
-        _sum[i] += _offset[i].get();
+        _sum[i] += compass._offset[i].get();
 
         // apply motor compensation
-        if (_motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && _thr_or_curr != 0.0f) {
-            _motor_offset[i] = _motor_compensation[i].get() * _thr_or_curr;
-            _sum[i] += _motor_offset[i];
+        if (compass._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && compass._thr_or_curr != 0.0f) {
+            compass._motor_offset[i] = compass._motor_compensation[i].get() * compass._thr_or_curr;
+            _sum[i] += compass._motor_offset[i];
         } else {
-            _motor_offset[i].zero();
+            compass._motor_offset[i].zero();
         }
     
-        _field[i] = _sum[i];
+        compass._field[i] = _sum[i];
     
         _sum[i].zero();
         _count[i] = 0;
     }
 
-    last_update = _last_timestamp[get_primary()];
+    compass.last_update = _last_timestamp[get_primary()];
     
-    return _healthy[get_primary()];
+    return compass._healthy[get_primary()];
 }
 
 void AP_Compass_VRBRAIN::accumulate(void)
@@ -158,11 +169,11 @@ void AP_Compass_VRBRAIN::accumulate(void)
 
 uint8_t AP_Compass_VRBRAIN::get_primary(void) const
 {
-    if (_primary < _num_instances && _healthy[_primary]) {
-        return _primary;
+    if (compass._primary < _num_instances && compass._healthy[_primary]) {
+        return compass._primary;
     }
     for (uint8_t i=0; i<_num_instances; i++) {
-        if (_healthy[i]) return i;
+        if (compass._healthy[i]) return i;
     }    
     return 0;
 }
