@@ -32,7 +32,7 @@ uint16_t AP_InertialSensor_HIL::_init_sensor( AP_InertialSensor::Sample_rate sam
 
 /*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
 
-bool AP_InertialSensor_HIL::update( void ) {
+bool AP_InertialSensor_HIL::_update( void ) {
     uint32_t now = hal.scheduler->micros();
     _last_sample_usec = now;
     return true;

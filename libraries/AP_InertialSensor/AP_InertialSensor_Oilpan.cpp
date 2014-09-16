@@ -69,7 +69,7 @@ uint16_t AP_InertialSensor_Oilpan::_init_sensor( AP_InertialSensor::Sample_rate 
 #endif
 }
 
-bool AP_InertialSensor_Oilpan::update()
+bool AP_InertialSensor_Oilpan::_update()
 {
     if (!wait_for_sample(100)) {
         return false;

@@ -208,7 +208,7 @@ bool AP_InertialSensor_LSM9DS0::wait_for_sample(uint16_t timeout_ms)
 }
 
 // TODO finish
-bool AP_InertialSensor_LSM9DS0::update( void )
+bool AP_InertialSensor_LSM9DS0::_update( void )
 {
     // wait for at least 1 sample
     if (!wait_for_sample(1000)) {

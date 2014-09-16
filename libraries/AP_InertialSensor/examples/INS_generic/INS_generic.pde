@@ -63,13 +63,10 @@ AP_InertialSensor_L3GD20 ins;
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 *****/
-#include <stdio.h>
 
 void setup(void)
 {
-    printf("traza_1\n");
     hal.console->println("AP_InertialSensor startup...");
-printf("traza_2\n");
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
 
@@ -89,7 +86,6 @@ printf("traza_2\n");
 
 void loop(void)
 {
-    hal.console->println("TEST_loop");
     int16_t user_input;
 
     hal.console->println();
@@ -136,7 +132,6 @@ void loop(void)
 
 void run_calibration()
 {
-    hal.console->println("TEST_run_calibration");
     float roll_trim, pitch_trim;
     // clear off any other characters (like line feeds,etc)
     while( hal.console->available() ) {
@@ -154,7 +149,6 @@ void run_calibration()
 
 void display_offsets_and_scaling()
 {
-    hal.console->println("TEST_display");
     Vector3f accel_offsets = ins.get_accel_offsets();
     Vector3f accel_scale = ins.get_accel_scale();
     Vector3f gyro_offsets = ins.get_gyro_offsets();
@@ -179,7 +173,6 @@ void display_offsets_and_scaling()
 
 void run_level()
 {
-        hal.console->println("TEST_run_level");
     // clear off any input in the buffer
     while( hal.console->available() ) {
         hal.console->read();
@@ -205,7 +198,6 @@ void run_level()
 
 void run_test()
 {
-    hal.console->println("TEST_run_test");
     Vector3f accel;
     Vector3f gyro;
     float length;

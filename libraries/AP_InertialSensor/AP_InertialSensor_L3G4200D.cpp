@@ -256,7 +256,7 @@ void AP_InertialSensor_L3G4200D::_set_filter_frequency(uint8_t filter_hz)
 
 /*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
 
-bool AP_InertialSensor_L3G4200D::update(void) 
+bool AP_InertialSensor_L3G4200D::_update(void) 
 {
     Vector3f accel_scale = imu._accel_scale[0].get();
 

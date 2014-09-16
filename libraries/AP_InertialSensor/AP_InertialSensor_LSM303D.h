@@ -19,7 +19,7 @@ public:
     AP_InertialSensor_LSM303D(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
-    bool                update();
+    bool                _update();
 
     // wait for a sample to be available, with timeout in milliseconds
     bool                wait_for_sample(uint16_t timeout_ms);

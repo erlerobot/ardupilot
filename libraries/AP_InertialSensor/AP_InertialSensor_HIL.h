@@ -13,9 +13,9 @@ public:
     AP_InertialSensor_HIL(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
-    bool            update();
+    bool            _update();
     float	        get_delta_time() const;
-    float           get_gyro_drift_rate();
+    float           get_gyro_drift_rate(void);
     bool            wait_for_sample(uint16_t timeout_ms);
     void            set_accel(uint8_t instance, const Vector3f &accel);
     void            set_gyro(uint8_t instance, const Vector3f &gyro);

@@ -154,7 +154,7 @@ uint8_t AP_InertialSensor_VRBRAIN::get_accel_count(void) const
     return _num_accel_instances;
 }
 
-bool AP_InertialSensor_VRBRAIN::update(void)
+bool AP_InertialSensor_VRBRAIN::_update(void)
 {
     if (!wait_for_sample(100)) {
         return false;

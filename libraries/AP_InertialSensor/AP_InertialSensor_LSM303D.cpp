@@ -281,7 +281,7 @@ bool AP_InertialSensor_LSM303D::wait_for_sample(uint16_t timeout_ms)
     return false;
 }
 
-bool AP_InertialSensor_LSM303D::update( void )
+bool AP_InertialSensor_LSM303D::_update( void )
 {
     // wait for at least 1 sample
     if (!wait_for_sample(1000)) {
