@@ -12,11 +12,11 @@
 // enable debug to see a register dump on startup
 #define LSM303D_DEBUG 0
 
-class AP_InertialSensor_LSM303D: public AP_InertialSensor
+class AP_InertialSensor_LSM303D: public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_LSM303D();
+    AP_InertialSensor_LSM303D(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool                update();
@@ -32,7 +32,7 @@ public:
     bool get_accel_health(uint8_t instance) const { return healthy(); }
 
 protected:
-    uint16_t                    _init_sensor( Sample_rate sample_rate );
+    uint16_t                    _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
 
 private:
     AP_HAL::DigitalSource *_drdy_pin_x;
@@ -60,7 +60,7 @@ private:
     void                 _register_write( uint8_t reg, uint8_t val );
     void                 _register_write_check(uint8_t reg, uint8_t val);
     void                 _register_modify(uint8_t reg, uint8_t clearbits, uint8_t setbits);
-    bool                 _hardware_init(Sample_rate sample_rate);
+    bool                 _hardware_init(AP_InertialSensor::Sample_rate sample_rate);
     void                 disable_i2c(void);
     uint8_t              accel_set_range(uint8_t max_g);
     uint8_t              accel_set_samplerate(uint8_t frequency);

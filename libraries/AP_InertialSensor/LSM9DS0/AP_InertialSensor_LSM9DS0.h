@@ -92,10 +92,10 @@ enum mag_odr
     M_ODR_100,  // 100 Hz (0x05)
 };
 
-class AP_InertialSensor_LSM9DS0: public AP_InertialSensor
+class AP_InertialSensor_LSM9DS0: public AP_InertialSensor_Backend
 {
 public:
-    AP_InertialSensor_LSM9DS0();
+    AP_InertialSensor_LSM9DS0(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool                update();
@@ -113,7 +113,7 @@ public:
     bool get_accel_health(uint8_t instance) const { return healthy(); }    
 
 protected:
-    uint16_t                    _init_sensor( Sample_rate sample_rate );
+    uint16_t                    _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
 
 private:
     AP_HAL::DigitalSource *_drdy_pin_a;
@@ -169,7 +169,7 @@ private:
     uint8_t              _register_read_g( uint8_t reg );
     void                 _register_write_xm( uint8_t reg, uint8_t val );
     void                 _register_write_g( uint8_t reg, uint8_t val );
-    bool                 _hardware_init(Sample_rate sample_rate);
+    bool                 _hardware_init(AP_InertialSensor::Sample_rate sample_rate);
 
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;

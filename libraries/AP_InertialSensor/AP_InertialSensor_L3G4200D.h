@@ -11,11 +11,11 @@
 #include <Filter.h>
 #include <LowPassFilter2p.h>
 
-class AP_InertialSensor_L3G4200D : public AP_InertialSensor
+class AP_InertialSensor_L3G4200D : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_L3G4200D();
+    AP_InertialSensor_L3G4200D(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool            update();
@@ -24,7 +24,7 @@ public:
     bool            wait_for_sample(uint16_t timeout_ms);
 
 private:
-    uint16_t        _init_sensor( Sample_rate sample_rate );
+    uint16_t        _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
     void             _accumulate(void);
     bool            _sample_available();
     uint64_t        _last_update_usec;

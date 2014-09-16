@@ -116,8 +116,8 @@ extern const AP_HAL::HAL& hal;
 #define ACT_DUR             0x3F
 
 
-AP_InertialSensor_LSM9DS0::AP_InertialSensor_LSM9DS0():
-    AP_InertialSensor(),
+AP_InertialSensor_LSM9DS0::AP_InertialSensor_LSM9DS0(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _drdy_pin_a(NULL),
     _drdy_pin_m(NULL),
     _drdy_pin_g(NULL),
@@ -126,7 +126,7 @@ AP_InertialSensor_LSM9DS0::AP_InertialSensor_LSM9DS0():
 {
 }
 
-uint16_t AP_InertialSensor_LSM9DS0::_init_sensor( Sample_rate sample_rate)
+uint16_t AP_InertialSensor_LSM9DS0::_init_sensor( AP_InertialSensor::Sample_rate sample_rate)
 {
     if (_initialised) return _lsm9ds0_product_id;
     _initialised = true;
@@ -215,12 +215,12 @@ bool AP_InertialSensor_LSM9DS0::update( void )
         return false;
     }
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
-    _gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
-    _accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    imu._gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
+    imu._accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
     // _mag[0] = Vector3f(_mag_sum.x, _mag_sum.y, _mag_sum.z);
     
     // TODO divide num_samples
@@ -233,18 +233,18 @@ bool AP_InertialSensor_LSM9DS0::update( void )
     _sum_count_xm = 0;
     hal.scheduler->resume_timer_procs();
 
-    _gyro[0].rotate(_board_orientation);
-    _gyro[0] *= _gRes / _num_samples_g;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0].rotate(imu._board_orientation);
+    imu._gyro[0] *= _gRes / _num_samples_g;
+    imu._gyro[0] -= imu._gyro_offset[0];
 
-    _accel[0].rotate(_board_orientation);
-    _accel[0] *= _aRes / _num_samples_xm;
+    imu._accel[0].rotate(imu._board_orientation);
+    imu._accel[0] *= _aRes / _num_samples_xm;
 
-    Vector3f accel_scaling = _accel_scale[0].get();
-    _accel[0].x *= accel_scaling.x;
-    _accel[0].y *= accel_scaling.y;
-    _accel[0].z *= accel_scaling.z;
-    _accel[0] -= _accel_offset[0];
+    Vector3f accel_scaling = imu._accel_scale[0].get();
+    imu._accel[0].x *= accel_scaling.x;
+    imu._accel[0].y *= accel_scaling.y;
+    imu._accel[0].z *= accel_scaling.z;
+    imu._accel[0] -= imu._accel_offset[0];
 
     // // Configure mag
     // _mag[0] *= _mRes / _num_samples_xm;
@@ -280,7 +280,7 @@ float AP_InertialSensor_LSM9DS0::get_delta_time() const
 /*================ HARDWARE FUNCTIONS ==================== */
 
 // TODO finish the method
-bool AP_InertialSensor_LSM9DS0::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_LSM9DS0::_hardware_init(AP_InertialSensor::Sample_rate sample_rate)
 {
 
     // Store the resolutions in private variables
@@ -306,18 +306,18 @@ bool AP_InertialSensor_LSM9DS0::_hardware_init(Sample_rate sample_rate)
     // to minimise the effects of aliasing we choose a filter
     // that is less than half of the sample rate
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         // this is used for plane and rover, where noise resistance is
         // more important than update rate. Tests on an aerobatic plane
         // show that 10Hz is fine, and makes it very noise resistant
         // default_filter = BITS_DLPF_CFG_10HZ;
         _sample_shift = 2;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         // default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 1;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
     default:
         // default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;

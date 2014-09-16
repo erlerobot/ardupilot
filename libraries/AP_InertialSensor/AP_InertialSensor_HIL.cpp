@@ -4,26 +4,26 @@
 #include <AP_HAL.h>
 const extern AP_HAL::HAL& hal;
 
-AP_InertialSensor_HIL::AP_InertialSensor_HIL() :
-    AP_InertialSensor(),
+AP_InertialSensor_HIL::AP_InertialSensor_HIL(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _sample_period_usec(0),
     _last_sample_usec(0)
 {
-    _accel[0] = Vector3f(0, 0, -GRAVITY_MSS);
+    imu._accel[0] = Vector3f(0, 0, -GRAVITY_MSS);
 }
 
-uint16_t AP_InertialSensor_HIL::_init_sensor( Sample_rate sample_rate ) {
+uint16_t AP_InertialSensor_HIL::_init_sensor( AP_InertialSensor::Sample_rate sample_rate ) {
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _sample_period_usec = 20000;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _sample_period_usec = 10000;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
         _sample_period_usec = 5000;
         break;
-    case RATE_400HZ:
+    case AP_InertialSensor::RATE_400HZ:
         _sample_period_usec = 2500;
         break;
     }
@@ -82,8 +82,8 @@ void AP_InertialSensor_HIL::set_accel(uint8_t instance, const Vector3f &accel)
     if (instance >= INS_MAX_INSTANCES) {
         return;
     }
-    _previous_accel[instance] = _accel[instance];
-    _accel[instance] = accel;
+    imu._previous_accel[instance] = imu._accel[instance];
+    imu._accel[instance] = accel;
     _last_accel_usec[instance] = hal.scheduler->micros();
 }
 
@@ -92,7 +92,7 @@ void AP_InertialSensor_HIL::set_gyro(uint8_t instance, const Vector3f &gyro)
     if (instance >= INS_MAX_INSTANCES) {
         return;
     }
-    _gyro[instance] = gyro;
+    imu._gyro[instance] = gyro;
     _last_gyro_usec[instance] = hal.scheduler->micros();
 }
 

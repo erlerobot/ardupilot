@@ -77,20 +77,25 @@ const uint32_t  raw_sample_interval_us = (1000000 / raw_sample_rate_hz);
 // Result wil be radians/sec
 #define FLYMAPLE_GYRO_SCALE_R_S (1.0f / 14.375f) * (3.1415926f / 180.0f)
 
-uint16_t AP_InertialSensor_Flymaple::_init_sensor( Sample_rate sample_rate ) 
+AP_InertialSensor_Flymaple::AP_InertialSensor_Flymaple(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
+{
+}
+
+uint16_t AP_InertialSensor_Flymaple::_init_sensor( AP_InertialSensor::Sample_rate sample_rate ) 
 {
     // Sensors are raw sampled at 800Hz.
     // Here we figure the divider to get the rate that update should be called
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _sample_divider = raw_sample_rate_hz / 50;
         _default_filter_hz = 10;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _sample_divider = raw_sample_rate_hz / 100;
         _default_filter_hz = 20;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
     default:
         _sample_divider = raw_sample_rate_hz / 200;
         _default_filter_hz = 20;
@@ -146,7 +151,7 @@ uint16_t AP_InertialSensor_Flymaple::_init_sensor( Sample_rate sample_rate )
     hal.scheduler->delay(1);
 
     // Set up the filter desired
-    _set_filter_frequency(_mpu6000_filter);
+    _set_filter_frequency(imu._mpu6000_filter);
 
    // give back i2c semaphore
     i2c_sem->give();
@@ -178,7 +183,7 @@ bool AP_InertialSensor_Flymaple::update(void)
     if (!wait_for_sample(100)) {
         return false;
     }
-    Vector3f accel_scale = _accel_scale[0].get();
+    Vector3f accel_scale = imu._accel_scale[0].get();
 
     // Not really needed since Flymaple _accumulate runs in the main thread
     hal.scheduler->suspend_timer_procs();
@@ -188,37 +193,37 @@ bool AP_InertialSensor_Flymaple::update(void)
     _delta_time = (_last_gyro_timestamp - _last_update_usec) * 1.0e-6f;
     _last_update_usec = _last_gyro_timestamp;
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
-    _accel[0] = _accel_filtered;
+    imu._accel[0] = _accel_filtered;
     _accel_samples = 0;
 
-    _gyro[0] = _gyro_filtered;
+    imu._gyro[0] = _gyro_filtered;
     _gyro_samples = 0;
 
     hal.scheduler->resume_timer_procs();
 
     // add offsets and rotation
-    _accel[0].rotate(_board_orientation);
+    imu._accel[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get m/s/s
-    _accel[0] *= FLYMAPLE_ACCELEROMETER_SCALE_M_S;
+    imu._accel[0] *= FLYMAPLE_ACCELEROMETER_SCALE_M_S;
 
     // Now the calibration scale factor
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0]   -= _accel_offset[0];
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0]   -= imu._accel_offset[0];
 
-    _gyro[0].rotate(_board_orientation);
+    imu._gyro[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get radians/sec
-    _gyro[0] *= FLYMAPLE_GYRO_SCALE_R_S;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0] *= FLYMAPLE_GYRO_SCALE_R_S;
+    imu._gyro[0] -= imu._gyro_offset[0];
 
-    if (_last_filter_hz != _mpu6000_filter) {
-        _set_filter_frequency(_mpu6000_filter);
-        _last_filter_hz = _mpu6000_filter;
+    if (_last_filter_hz != imu._mpu6000_filter) {
+        _set_filter_frequency(imu._mpu6000_filter);
+        _last_filter_hz = imu._mpu6000_filter;
     }
 
     return true;

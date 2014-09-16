@@ -17,7 +17,14 @@ const extern AP_HAL::HAL& hal;
 
 #include <AP_Notify.h>
 
-uint16_t AP_InertialSensor_PX4::_init_sensor( Sample_rate sample_rate ) 
+AP_InertialSensor_PX4::AP_InertialSensor_PX4(AP_InertialSensor &_imu) : 
+    AP_InertialSensor_Backend(_imu),
+    _last_get_sample_timestamp(0),
+    _sample_time_usec(0)
+{
+}
+
+uint16_t AP_InertialSensor_PX4::_init_sensor( AP_InertialSensor::Sample_rate sample_rate ) 
 {
     // assumes max 2 instances
     _accel_fd[0] = open(ACCEL_DEVICE_PATH, O_RDONLY);
@@ -45,26 +52,26 @@ uint16_t AP_InertialSensor_PX4::_init_sensor( Sample_rate sample_rate )
     }
 
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _default_filter_hz = 15;
         _sample_time_usec = 20000;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _default_filter_hz = 30;
         _sample_time_usec = 10000;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
         _default_filter_hz = 30;
         _sample_time_usec = 5000;
         break;
-    case RATE_400HZ:
+    case AP_InertialSensor::RATE_400HZ:
     default:
         _default_filter_hz = 30;
         _sample_time_usec = 2500;
         break;
     }
 
-    _set_filter_frequency(_mpu6000_filter);
+    _set_filter_frequency(imu._mpu6000_filter);
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     return AP_PRODUCT_ID_PX4_V2;
@@ -130,8 +137,8 @@ bool AP_InertialSensor_PX4::get_accel_health(uint8_t k) const
         // accels have not updated
         return false;
     }
-    if (fabsf(_accel[k].x) > 30 && fabsf(_accel[k].y) > 30 && fabsf(_accel[k].z) > 30 &&
-        (_previous_accel[k] - _accel[k]).length() < 0.01f) {
+    if (fabsf(imu._accel[k].x) > 30 && fabsf(imu._accel[k].y) > 30 && fabsf(imu._accel[k].z) > 30 &&
+        (imu._previous_accel[k] - imu._accel[k]).length() < 0.01f) {
         // unchanging accel, large in all 3 axes. This is a likely
         // accelerometer failure of the LSM303d
         return false;
@@ -156,24 +163,24 @@ bool AP_InertialSensor_PX4::update(void)
 
 
     for (uint8_t k=0; k<_num_accel_instances; k++) {
-        _previous_accel[k] = _accel[k];
-        _accel[k] = _accel_in[k];
-        _accel[k].rotate(_board_orientation);
-        _accel[k].x *= _accel_scale[k].get().x;
-        _accel[k].y *= _accel_scale[k].get().y;
-        _accel[k].z *= _accel_scale[k].get().z;
-        _accel[k]   -= _accel_offset[k];
+        imu._previous_accel[k] = imu._accel[k];
+        imu._accel[k] = _accel_in[k];
+        imu._accel[k].rotate(imu._board_orientation);
+        imu._accel[k].x *= imu._accel_scale[k].get().x;
+        imu._accel[k].y *= imu._accel_scale[k].get().y;
+        imu._accel[k].z *= imu._accel_scale[k].get().z;
+        imu._accel[k]   -= imu._accel_offset[k];
     }
 
     for (uint8_t k=0; k<_num_gyro_instances; k++) {
-        _gyro[k] = _gyro_in[k];
-        _gyro[k].rotate(_board_orientation);
-        _gyro[k] -= _gyro_offset[k];
+        imu._gyro[k] = _gyro_in[k];
+        imu._gyro[k].rotate(imu._board_orientation);
+        imu._gyro[k] -= imu._gyro_offset[k];
     }
 
-    if (_last_filter_hz != _mpu6000_filter) {
-        _set_filter_frequency(_mpu6000_filter);
-        _last_filter_hz = _mpu6000_filter;
+    if (_last_filter_hz != imu._mpu6000_filter) {
+        _set_filter_frequency(imu._mpu6000_filter);
+        _last_filter_hz = imu._mpu6000_filter;
     }
 
     _have_sample_available = false;

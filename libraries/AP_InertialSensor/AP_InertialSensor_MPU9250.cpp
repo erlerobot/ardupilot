@@ -172,8 +172,8 @@ extern const AP_HAL::HAL& hal;
  *  variants however
  */
 
-AP_InertialSensor_MPU9250::AP_InertialSensor_MPU9250() :
-	AP_InertialSensor(),
+AP_InertialSensor_MPU9250::AP_InertialSensor_MPU9250(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _initialised(false),
     _mpu9250_product_id(AP_PRODUCT_ID_PIXHAWK_FIRE_CAPE),
     _last_filter_hz(-1),
@@ -190,7 +190,7 @@ AP_InertialSensor_MPU9250::AP_InertialSensor_MPU9250() :
 /*
   initialise the sensor
  */
-uint16_t AP_InertialSensor_MPU9250::_init_sensor( Sample_rate sample_rate )
+uint16_t AP_InertialSensor_MPU9250::_init_sensor( AP_InertialSensor::Sample_rate sample_rate )
 {
     if (_initialised) return _mpu9250_product_id;
     _initialised = true;
@@ -298,39 +298,39 @@ bool AP_InertialSensor_MPU9250::update( void )
         return false;
     }
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
     // pull the data from the timer shared data buffer
     uint8_t idx = _shared_data_idx;
-    _gyro[0]  = _shared_data[idx]._gyro_filtered;
-    _accel[0] = _shared_data[idx]._accel_filtered;
+    imu._gyro[0]  = _shared_data[idx]._gyro_filtered;
+    imu._accel[0] = _shared_data[idx]._accel_filtered;
 
-    _gyro[0].rotate(_board_orientation);
-    _gyro[0] *= GYRO_SCALE;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0].rotate(imu._board_orientation);
+    imu._gyro[0] *= GYRO_SCALE;
+    imu._gyro[0] -= imu._gyro_offset[0];
 
-    _accel[0].rotate(_board_orientation);
-    _accel[0] *= MPU9250_ACCEL_SCALE_1G;
+    imu._accel[0].rotate(imu._board_orientation);
+    imu._accel[0] *= MPU9250_ACCEL_SCALE_1G;
 
     // rotate for bbone default
-    _accel[0].rotate(ROTATION_ROLL_180_YAW_90);
-    _gyro[0].rotate(ROTATION_ROLL_180_YAW_90);
+    imu._accel[0].rotate(ROTATION_ROLL_180_YAW_90);
+    imu._gyro[0].rotate(ROTATION_ROLL_180_YAW_90);
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
     // PXF has an additional YAW 180
-    _accel[0].rotate(ROTATION_YAW_180);
-    _gyro[0].rotate(ROTATION_YAW_180);
+    imu._accel[0].rotate(ROTATION_YAW_180);
+    imu._gyro[0].rotate(ROTATION_YAW_180);
 #endif
 
-    Vector3f accel_scale = _accel_scale[0].get();
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0] -= _accel_offset[0];
+    Vector3f accel_scale = imu._accel_scale[0].get();
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0] -= imu._accel_offset[0];
 
-    if (_last_filter_hz != _mpu6000_filter) {
-        _set_filter(_mpu6000_filter);
-        _last_filter_hz = _mpu6000_filter;
+    if (_last_filter_hz != imu._mpu6000_filter) {
+        _set_filter(imu._mpu6000_filter);
+        _last_filter_hz = imu._mpu6000_filter;
     }
 
     _have_sample_available = false;
@@ -440,7 +440,7 @@ void AP_InertialSensor_MPU9250::_set_filter(uint8_t filter_hz)
 /*
   initialise the sensor configuration registers
  */
-bool AP_InertialSensor_MPU9250::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_MPU9250::_hardware_init(AP_InertialSensor::Sample_rate sample_rate)
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("MPU9250: Unable to get semaphore"));
@@ -484,19 +484,19 @@ bool AP_InertialSensor_MPU9250::_hardware_init(Sample_rate sample_rate)
     // to minimise the effects of aliasing we choose a filter
     // that is less than half of the sample rate
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _default_filter_hz = 15;
         _sample_time_usec = 20000;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _default_filter_hz = 30;
         _sample_time_usec = 10000;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
         _default_filter_hz = 30;
         _sample_time_usec = 5000;
         break;
-    case RATE_400HZ:
+    case AP_InertialSensor::RATE_400HZ:
     default:
         _default_filter_hz = 30;
         _sample_time_usec = 2500;

@@ -103,8 +103,8 @@ const extern AP_HAL::HAL& hal;
 #define L3G4200D_GYRO_SCALE_R_S (DEG_TO_RAD * 70.0f * 0.001f)
 
 // constructor
-AP_InertialSensor_L3G4200D::AP_InertialSensor_L3G4200D() :
-    AP_InertialSensor(),
+AP_InertialSensor_L3G4200D::AP_InertialSensor_L3G4200D(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _accel_filter_x(800, 10),
     _accel_filter_y(800, 10),
     _accel_filter_z(800, 10),
@@ -113,21 +113,21 @@ AP_InertialSensor_L3G4200D::AP_InertialSensor_L3G4200D() :
     _gyro_filter_z(800, 10)
 {}
 
-uint16_t AP_InertialSensor_L3G4200D::_init_sensor( Sample_rate sample_rate ) 
+uint16_t AP_InertialSensor_L3G4200D::_init_sensor( AP_InertialSensor::Sample_rate sample_rate ) 
 {
 
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _default_filter_hz = 10;
         _sample_period_usec = (1000*1000) / 50;
         _gyro_samples_needed = 16;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _default_filter_hz = 20;
         _sample_period_usec = (1000*1000) / 100;
         _gyro_samples_needed = 8;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
     default:
         _default_filter_hz = 20;
         _sample_period_usec = (1000*1000) / 200;
@@ -219,7 +219,7 @@ uint16_t AP_InertialSensor_L3G4200D::_init_sensor( Sample_rate sample_rate )
                            
 
     // Set up the filter desired
-    _set_filter_frequency(_mpu6000_filter);
+    _set_filter_frequency(imu._mpu6000_filter);
 
     // give back i2c semaphore
     i2c_sem->give();
@@ -258,38 +258,38 @@ void AP_InertialSensor_L3G4200D::_set_filter_frequency(uint8_t filter_hz)
 
 bool AP_InertialSensor_L3G4200D::update(void) 
 {
-    Vector3f accel_scale = _accel_scale[0].get();
+    Vector3f accel_scale = imu._accel_scale[0].get();
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
     hal.scheduler->suspend_timer_procs();
-    _accel[0] = _accel_filtered;
-    _gyro[0] = _gyro_filtered;
+    imu._accel[0] = _accel_filtered;
+    imu._gyro[0] = _gyro_filtered;
     _delta_time = _gyro_samples_available * (1.0f/800);    
     _gyro_samples_available = 0;
     hal.scheduler->resume_timer_procs();
 
     // add offsets and rotation
-    _accel[0].rotate(_board_orientation);
+    imu._accel[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get m/s/s
-    _accel[0] *= ADXL345_ACCELEROMETER_SCALE_M_S;
+    imu._accel[0] *= ADXL345_ACCELEROMETER_SCALE_M_S;
 
     // Now the calibration scale factor
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0]   -= _accel_offset[0];
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0]   -= imu._accel_offset[0];
 
-    _gyro[0].rotate(_board_orientation);
+    imu._gyro[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get radians/sec
-    _gyro[0] *= L3G4200D_GYRO_SCALE_R_S;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0] *= L3G4200D_GYRO_SCALE_R_S;
+    imu._gyro[0] -= imu._gyro_offset[0];
 
-    if (_last_filter_hz != _mpu6000_filter) {
-        _set_filter_frequency(_mpu6000_filter);
-        _last_filter_hz = _mpu6000_filter;
+    if (_last_filter_hz != imu._mpu6000_filter) {
+        _set_filter_frequency(imu._mpu6000_filter);
+        _last_filter_hz = imu._mpu6000_filter;
     }
 
     return true;

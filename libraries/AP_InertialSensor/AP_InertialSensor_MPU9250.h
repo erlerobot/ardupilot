@@ -14,11 +14,11 @@
 // enable debug to see a register dump on startup
 #define MPU9250_DEBUG 0
 
-class AP_InertialSensor_MPU9250 : public AP_InertialSensor
+class AP_InertialSensor_MPU9250 : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_MPU9250();
+    AP_InertialSensor_MPU9250(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool                update();
@@ -31,14 +31,14 @@ public:
     float            	get_delta_time() const;
 
 private:
-    uint16_t             _init_sensor( Sample_rate sample_rate );
+    uint16_t             _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
 
     void                 _read_data_transaction();
     bool                 _data_ready();
     void                 _poll_data(void);
     uint8_t              _register_read( uint8_t reg );
     void                 _register_write( uint8_t reg, uint8_t val );
-    bool                 _hardware_init(Sample_rate sample_rate);
+    bool                 _hardware_init(AP_InertialSensor::Sample_rate sample_rate);
     bool                 _sample_available();
 
     AP_HAL::SPIDeviceDriver *_spi;

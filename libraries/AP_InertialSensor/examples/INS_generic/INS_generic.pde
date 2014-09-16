@@ -41,6 +41,8 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 #define CONFIG_INS_TYPE HAL_INS_DEFAULT
 
+AP_InertialSensor ins;
+/*****
 #if CONFIG_INS_TYPE == HAL_INS_MPU6000
 AP_InertialSensor_MPU6000 ins;
 #elif CONFIG_INS_TYPE == HAL_INS_PX4
@@ -60,7 +62,7 @@ AP_InertialSensor_L3GD20 ins;
 #else
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
-
+*****/
 void setup(void)
 {
     hal.console->println("AP_InertialSensor startup...");

@@ -32,7 +32,7 @@
 #include <AP_Param.h>
 #include <AP_AHRS.h>
 #include <AP_Mission.h>
-#include <AP_Rally.h>
+#include "../AP_Rally/AP_Rally.h"
 
 #define TERRAIN_DEBUG 0
 

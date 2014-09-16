@@ -40,24 +40,24 @@ const float AP_InertialSensor_Oilpan::_gyro_gain_z = ToRad(0.41f);
 
 /* ------ Public functions -------------------------------------------*/
 
-AP_InertialSensor_Oilpan::AP_InertialSensor_Oilpan( AP_ADC * adc ) : 
-    AP_InertialSensor(),
-    _adc(adc)
+AP_InertialSensor_Oilpan::AP_InertialSensor_Oilpan(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu)
 {
+    AP_ADC_ADS7844 _adc;   
 }
 
-uint16_t AP_InertialSensor_Oilpan::_init_sensor( Sample_rate sample_rate)
+uint16_t AP_InertialSensor_Oilpan::_init_sensor( AP_InertialSensor::Sample_rate sample_rate)
 {
     _adc->Init();
 
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _sample_threshold = 20;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _sample_threshold = 10;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
         _sample_threshold = 5;
         break;
     }
@@ -75,33 +75,33 @@ bool AP_InertialSensor_Oilpan::update()
         return false;
     }
     float adc_values[6];
-    Vector3f gyro_offset = _gyro_offset[0].get();
-    Vector3f accel_scale = _accel_scale[0].get();
-    Vector3f accel_offset = _accel_offset[0].get();
+    Vector3f gyro_offset = imu._gyro_offset[0].get();
+    Vector3f accel_scale = imu._accel_scale[0].get();
+    Vector3f accel_offset = imu._accel_offset[0].get();
 
     _delta_time_micros = _adc->Ch6(_sensors, adc_values);
     _temp = _adc->Ch(_gyro_temp_ch);
 
-    _gyro[0] = Vector3f(_sensor_signs[0] * ( adc_values[0] - OILPAN_RAW_GYRO_OFFSET ),
+    imu._gyro[0] = Vector3f(_sensor_signs[0] * ( adc_values[0] - OILPAN_RAW_GYRO_OFFSET ),
                         _sensor_signs[1] * ( adc_values[1] - OILPAN_RAW_GYRO_OFFSET ),
                         _sensor_signs[2] * ( adc_values[2] - OILPAN_RAW_GYRO_OFFSET ));
-    _gyro[0].rotate(_board_orientation);
-    _gyro[0].x *= _gyro_gain_x;
-    _gyro[0].y *= _gyro_gain_y;
-    _gyro[0].z *= _gyro_gain_z;
-    _gyro[0] -= gyro_offset;
+    imu._gyro[0].rotate(imu._board_orientation);
+    imu._gyro[0].x *= imu._gyro_gain_x;
+    imu._gyro[0].y *= imu._gyro_gain_y;
+    imu._gyro[0].z *= imu._gyro_gain_z;
+    imu._gyro[0] -= gyro_offset;
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
-    _accel[0]  = Vector3f(_sensor_signs[3] * (adc_values[3] - OILPAN_RAW_ACCEL_OFFSET),
+    imu._accel[0]  = Vector3f(_sensor_signs[3] * (adc_values[3] - OILPAN_RAW_ACCEL_OFFSET),
                           _sensor_signs[4] * (adc_values[4] - OILPAN_RAW_ACCEL_OFFSET),
                           _sensor_signs[5] * (adc_values[5] - OILPAN_RAW_ACCEL_OFFSET));
-    _accel[0].rotate(_board_orientation);
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0]   *= OILPAN_ACCEL_SCALE_1G;
-    _accel[0] -= accel_offset;
+    imu._accel[0].rotate(imu._board_orientation);
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0]   *= OILPAN_ACCEL_SCALE_1G;
+    imu._accel[0] -= accel_offset;
 
 /*
  *  X  = 1619.30 to 2445.69

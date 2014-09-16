@@ -12,11 +12,11 @@
 // enable debug to see a register dump on startup
 #define L3GD20_DEBUG 0
 
-class AP_InertialSensor_L3GD20 : public AP_InertialSensor
+class AP_InertialSensor_L3GD20 : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_L3GD20();
+    AP_InertialSensor_L3GD20(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool                update();
@@ -34,7 +34,7 @@ public:
     bool get_accel_health(uint8_t instance) const { return healthy(); }
 
 protected:
-    uint16_t                    _init_sensor( Sample_rate sample_rate );
+    uint16_t                    _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
 
 private:
     AP_HAL::DigitalSource *_drdy_pin;
@@ -46,7 +46,7 @@ private:
     uint8_t              _register_read( uint8_t reg );
     void                 _register_write( uint8_t reg, uint8_t val );
     void                 _register_write_check(uint8_t reg, uint8_t val);
-    bool                 _hardware_init(Sample_rate sample_rate);
+    bool                 _hardware_init(AP_InertialSensor::Sample_rate sample_rate);
     void                 disable_i2c(void);
     uint8_t              set_samplerate(uint8_t frequency);
     uint8_t              set_range(uint8_t max_dps);

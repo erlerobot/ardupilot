@@ -173,8 +173,8 @@ const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532f / 16.4f);
  *  variants however
  */
 
-AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() : 
-	AP_InertialSensor(),
+AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _drdy_pin(NULL),
     _spi(NULL),
     _spi_sem(NULL),
@@ -188,7 +188,7 @@ AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() :
 {
 }
 
-uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
+uint16_t AP_InertialSensor_MPU6000::_init_sensor( AP_InertialSensor::Sample_rate sample_rate )
 {
     if (_initialised) return _mpu6000_product_id;
     _initialised = true;
@@ -271,40 +271,40 @@ bool AP_InertialSensor_MPU6000::update( void )
         return false;
     }
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
-    _gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
-    _accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    imu._gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
+    imu._accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
     _num_samples = _sum_count;
     _accel_sum.zero();
     _gyro_sum.zero();
     _sum_count = 0;
     hal.scheduler->resume_timer_procs();
 
-    _gyro[0].rotate(_board_orientation);
-    _gyro[0] *= _gyro_scale / _num_samples;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0].rotate(imu._board_orientation);
+    imu._gyro[0] *= _gyro_scale / _num_samples;
+    imu._gyro[0] -= imu._gyro_offset[0];
 
-    _accel[0].rotate(_board_orientation);
-    _accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
+    imu._accel[0].rotate(imu._board_orientation);
+    imu._accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
 
-    Vector3f accel_scale = _accel_scale[0].get();
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0] -= _accel_offset[0];
+    Vector3f accel_scale = imu._accel_scale[0].get();
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0] -= imu._accel_offset[0];
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-    _gyro[0].rotate(ROTATION_PITCH_180_YAW_90);
-    _accel[0].rotate(ROTATION_PITCH_180_YAW_90);
+    imu._gyro[0].rotate(ROTATION_PITCH_180_YAW_90);
+    imu._accel[0].rotate(ROTATION_PITCH_180_YAW_90);
 #endif
 
-    if (_last_filter_hz != _mpu6000_filter) {
+    if (_last_filter_hz != imu._mpu6000_filter) {
         if (_spi_sem->take(10)) {
             _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
-            _set_filter_register(_mpu6000_filter, 0);
+            _set_filter_register(imu._mpu6000_filter, 0);
             _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_HIGH);
             _error_count = 0;
             _spi_sem->give();
@@ -482,7 +482,7 @@ void AP_InertialSensor_MPU6000::_set_filter_register(uint8_t filter_hz, uint8_t 
 }
 
 
-bool AP_InertialSensor_MPU6000::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_MPU6000::_hardware_init(AP_InertialSensor::Sample_rate sample_rate)
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("MPU6000: Unable to get semaphore"));
@@ -530,25 +530,25 @@ bool AP_InertialSensor_MPU6000::_hardware_init(Sample_rate sample_rate)
     // to minimise the effects of aliasing we choose a filter
     // that is less than half of the sample rate
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         // this is used for plane and rover, where noise resistance is
         // more important than update rate. Tests on an aerobatic plane
         // show that 10Hz is fine, and makes it very noise resistant
         default_filter = BITS_DLPF_CFG_10HZ;
         _sample_shift = 2;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 1;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
     default:
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
         break;
     }
 
-    _set_filter_register(_mpu6000_filter, default_filter);
+    _set_filter_register(imu._mpu6000_filter, default_filter);
 
     // set sample rate to 200Hz, and use _sample_divider to give
     // the requested rate to the application

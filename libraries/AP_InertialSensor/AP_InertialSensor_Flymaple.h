@@ -11,11 +11,11 @@
 #include <Filter.h>
 #include <LowPassFilter2p.h>
 
-class AP_InertialSensor_Flymaple : public AP_InertialSensor
+class AP_InertialSensor_Flymaple : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_Flymaple() : AP_InertialSensor() {}
+    AP_InertialSensor_Flymaple(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool            update();
@@ -27,7 +27,7 @@ public:
     bool            healthy(void) const { return get_gyro_health() && get_accel_health(); }
 
 private:
-    uint16_t        _init_sensor( Sample_rate sample_rate );
+    uint16_t        _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
     static          void _accumulate(void);
     bool            _sample_available();
     uint64_t        _last_update_usec;

@@ -288,6 +288,9 @@ static AP_Compass_HIL compass;
  #error Unrecognized CONFIG_COMPASS setting
 #endif
 */
+
+AP_InertialSensor ins;
+/*
 #if CONFIG_INS_TYPE == HAL_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
 AP_ADC_ADS7844 apm1_adc;
 #endif
@@ -311,6 +314,7 @@ AP_InertialSensor_MPU9250 ins;
 #else
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
+*/
 
 // Inertial Navigation EKF
 #if AP_AHRS_NAVEKF_AVAILABLE

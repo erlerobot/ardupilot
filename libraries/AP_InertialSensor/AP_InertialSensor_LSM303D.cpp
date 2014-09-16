@@ -181,8 +181,8 @@ extern const AP_HAL::HAL& hal;
 #define LSM303D_ONE_G                   9.80665f
 
 
-AP_InertialSensor_LSM303D::AP_InertialSensor_LSM303D() : 
-    AP_InertialSensor(),
+AP_InertialSensor_LSM303D::AP_InertialSensor_LSM303D(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _drdy_pin_x(NULL),
     _drdy_pin_m(NULL),
     _initialised(false),
@@ -190,7 +190,7 @@ AP_InertialSensor_LSM303D::AP_InertialSensor_LSM303D() :
 {
 }
 
-uint16_t AP_InertialSensor_LSM303D::_init_sensor( Sample_rate sample_rate )
+uint16_t AP_InertialSensor_LSM303D::_init_sensor( AP_InertialSensor::Sample_rate sample_rate )
 {
     if (_initialised) return _LSM303D_product_id;
     _initialised = true;
@@ -291,7 +291,7 @@ bool AP_InertialSensor_LSM303D::update( void )
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
 
-    _accel[0]  = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    imu._accel[0]  = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
     // _mag[0]  = Vector3f(_mag_sum.x, _mag_sum.y, _mag_sum.z);
 
     _num_samples = _sum_count;
@@ -300,7 +300,7 @@ bool AP_InertialSensor_LSM303D::update( void )
     _sum_count = 0;
     hal.scheduler->resume_timer_procs();
 
-    _accel[0].rotate(_board_orientation);
+    imu._accel[0].rotate(imu._board_orientation);
     // TODO change this for the corresponding value
     // _accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
 
@@ -718,7 +718,7 @@ uint8_t AP_InertialSensor_LSM303D::mag_set_samplerate(uint8_t frequency)
     return 0;
 }
 
-bool AP_InertialSensor_LSM303D::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_LSM303D::_hardware_init(AP_InertialSensor::Sample_rate sample_rate)
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("LSM303D: Unable to get semaphore"));

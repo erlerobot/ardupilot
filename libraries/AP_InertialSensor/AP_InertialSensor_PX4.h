@@ -13,16 +13,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 
-class AP_InertialSensor_PX4 : public AP_InertialSensor
+class AP_InertialSensor_PX4 : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_PX4() : 
-        AP_InertialSensor(),
-        _last_get_sample_timestamp(0),
-        _sample_time_usec(0)
-        {
-        }
+    AP_InertialSensor_PX4(AP_InertialSensor &_imu); 
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool            update();
@@ -43,7 +38,7 @@ public:
 private:
     uint8_t _get_primary_gyro(void) const;
 
-    uint16_t _init_sensor( Sample_rate sample_rate );
+    uint16_t _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
     void     _get_sample(void);
     bool     _sample_available(void);
     Vector3f _accel_in[INS_MAX_INSTANCES];

@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_Progmem.h>
-#include "AP_InertialSensor.h"
+#include <AP_InertialSensor.h>
 
 #include <AP_Common.h>
 #include <AP_HAL.h>
@@ -104,15 +104,16 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] PROGMEM = {
     AP_GROUPEND
 };
 
-AP_InertialSensor::AP_InertialSensor() :
+AP_InertialSensor::AP_InertialSensor():
     _accel(),
     _gyro(),
     _board_orientation(ROTATION_NONE)
 {
-    AP_Param::setup_object_defaults(this, var_info);        
+    AP_Param::setup_object_defaults(this, var_info);  
+    primary_instance = 0;      
 }
 
-void detect_instance(uint8_t instance)
+void AP_InertialSensor::detect_instance(uint8_t instance)
 {
     if(drivers[instance]!=NULL)
         return;
@@ -141,15 +142,16 @@ void detect_instance(uint8_t instance)
         drivers[instance] = ins;
 }
 
-bool AP_InertialSensor::init()
+bool AP_InertialSensor::init(Start_style style, Sample_rate sample_rate)
 {
     bool success = true;
      for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
         if(drivers[i] == NULL)
             detect_instance(i);
 
-        success &= drivers[i]->init();
+        /*success &=*/ drivers[i]->init(style, sample_rate);
     }
+    //TODO check return statement on drivers[i]->init();
     return success;
 }
 
@@ -158,9 +160,10 @@ void AP_InertialSensor::init_accel()
      for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
         if(drivers[i] == NULL){
             detect_instance(i);
-            drivers[i]->init();
         }
-        drivers[i]->init_accel();
+        else{
+            drivers[i]->init_accel();
+        }
     }
 }
 
@@ -169,9 +172,11 @@ void AP_InertialSensor::init_gyro()
      for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
         if(drivers[i] == NULL){
             detect_instance(i);
-            drivers[i]->init();
         }
-        drivers[i]->init_gyro();
+        else{
+            drivers[i]->init_gyro();
+        }
+;
     }
 }
 
@@ -181,12 +186,12 @@ bool AP_InertialSensor::update()
 {
     bool success = true;
     for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
-        if(drivers[i] == NULL){
+               if(drivers[i] == NULL){
             detect_instance(i);
-            drivers[i]->init();
         }
-
-        success &= drivers[i]->_update();
+        else{
+            success &= drivers[i]->_update();
+        }
     }
     return success;
 }
@@ -525,5 +530,19 @@ void AP_InertialSensor::_calculate_trim(Vector3f accel_sample, float& trim_roll,
     }
 }
 
+bool AP_InertialSensor::wait_for_sample(uint16_t timeout_ms) 
+{ 
+	return drivers[primary_instance]->wait_for_sample(timeout_ms);  
+}
+
+float AP_InertialSensor::get_delta_time() const
+{ 
+	return drivers[primary_instance]->get_delta_time(); 
+} 
+
+float AP_InertialSensor::get_gyro_drift_rate(void)
+{
+	return drivers[primary_instance]->get_gyro_drift_rate(); 
+}
 #endif // __AVR_ATmega1280__
 

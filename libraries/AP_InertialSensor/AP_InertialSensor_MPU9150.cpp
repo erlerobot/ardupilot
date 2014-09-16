@@ -320,8 +320,8 @@ static struct gyro_state_s st = {
 /**
  *  @brief      Constructor
  */
-AP_InertialSensor_MPU9150::AP_InertialSensor_MPU9150() :
-    AP_InertialSensor(),
+AP_InertialSensor_MPU9150::AP_InertialSensor_MPU9150(AP_InertialSensor &_imu):
+    AP_InertialSensor_Backend(_imu),
     _accel_filter_x(800, 10),
     _accel_filter_y(800, 10),
     _accel_filter_z(800, 10),
@@ -356,25 +356,25 @@ void AP_InertialSensor_MPU9150::_set_filter_frequency(uint8_t filter_hz)
  *  @param[in] Sample_rate  The sample rate, check the struct def.
  *  @return     AP_PRODUCT_ID_PIXHAWK_FIRE_CAPE if successful.
  */
-uint16_t AP_InertialSensor_MPU9150::_init_sensor( Sample_rate sample_rate ) 
+uint16_t AP_InertialSensor_MPU9150::_init_sensor( AP_InertialSensor::Sample_rate sample_rate ) 
 {
     // Sensors pushed to the FIFO.
     uint8_t sensors;
 
     switch (sample_rate) {
-    case RATE_50HZ:
+    case AP_InertialSensor::RATE_50HZ:
         _default_filter_hz = 10;
         _sample_period_usec = (1000*1000) / 50;
         break;
-    case RATE_100HZ:
+    case AP_InertialSensor::RATE_100HZ:
         _default_filter_hz = 20;
         _sample_period_usec = (1000*1000) / 100;
         break;
-    case RATE_200HZ:
+    case AP_InertialSensor::RATE_200HZ:
         _default_filter_hz = 20;
         _sample_period_usec = 5000;
         break;
-    case RATE_400HZ:
+    case AP_InertialSensor::RATE_400HZ:
     default:
         _default_filter_hz = 20;
         _sample_period_usec = 2500;
@@ -467,7 +467,7 @@ uint16_t AP_InertialSensor_MPU9150::_init_sensor( Sample_rate sample_rate )
     mpu_set_sensors(sensors);
 
     // Set the filter frecuency (_mpu6000_filter configured to the default value, check AP_InertialSensor.cpp)
-    _set_filter_frequency(_mpu6000_filter);
+    _set_filter_frequency(imu._mpu6000_filter);
 
     // give back i2c semaphore
     i2c_sem->give();
@@ -1137,40 +1137,40 @@ bool AP_InertialSensor_MPU9150::update(void)
     if (!wait_for_sample(1000)) {
         return false;
     }
-    Vector3f accel_scale = _accel_scale[0].get();
+    Vector3f accel_scale = imu._accel_scale[0].get();
 
-    _previous_accel[0] = _accel[0];
+    imu._previous_accel[0] = imu._accel[0];
 
     // hal.scheduler->suspend_timer_procs();
-    _accel[0] = _accel_filtered;
-    _gyro[0] = _gyro_filtered;
+    imu._accel[0] = _accel_filtered;
+    imu._gyro[0] = _gyro_filtered;
     // hal.scheduler->resume_timer_procs();
 
     // add offsets and rotation
-    _accel[0].rotate(_board_orientation);
+    imu._accel[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get m/s/s
     ////////////////////////////////////////////////
-    _accel[0] *= MPU9150_ACCEL_SCALE_2G/_gyro_samples_available;
+    imu._accel[0] *= MPU9150_ACCEL_SCALE_2G/_gyro_samples_available;
 
     // Now the calibration scale factor
-    _accel[0].x *= accel_scale.x;
-    _accel[0].y *= accel_scale.y;
-    _accel[0].z *= accel_scale.z;
-    _accel[0]   -= _accel_offset[0];
+    imu._accel[0].x *= accel_scale.x;
+    imu._accel[0].y *= accel_scale.y;
+    imu._accel[0].z *= accel_scale.z;
+    imu._accel[0]   -= imu._accel_offset[0];
 
-    _gyro[0].rotate(_board_orientation);
+    imu._gyro[0].rotate(imu._board_orientation);
 
     // Adjust for chip scaling to get radians/sec
-    _gyro[0] *= MPU9150_GYRO_SCALE_2000 / _gyro_samples_available;
-    _gyro[0] -= _gyro_offset[0];
+    imu._gyro[0] *= MPU9150_GYRO_SCALE_2000 / _gyro_samples_available;
+    imu._gyro[0] -= imu._gyro_offset[0];
     ////////////////////////////////////////////////
 
     _gyro_samples_available = 0;
 
-    if (_last_filter_hz != _mpu6000_filter) {
-        _set_filter_frequency(_mpu6000_filter);
-        _last_filter_hz = _mpu6000_filter;
+    if (_last_filter_hz != imu._mpu6000_filter) {
+        _set_filter_frequency(imu._mpu6000_filter);
+        _last_filter_hz = imu._mpu6000_filter;
     }
 
     _have_sample_available = false;
