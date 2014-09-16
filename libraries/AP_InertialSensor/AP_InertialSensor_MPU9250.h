@@ -9,7 +9,7 @@
 #include <AP_Progmem.h>
 #include <Filter.h>
 #include <LowPassFilter2p.h>
-#include "AP_InertialSensor.h"
+#include <AP_InertialSensor.h>
 
 // enable debug to see a register dump on startup
 #define MPU9250_DEBUG 0
@@ -21,17 +21,17 @@ public:
     AP_InertialSensor_MPU9250(AP_InertialSensor &_imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
-    bool                update();
-    float               get_gyro_drift_rate();
+    bool                _update();
+    float               get_gyro_drift_rate(void);
 
     // wait for a sample to be available, with timeout in milliseconds
     bool                wait_for_sample(uint16_t timeout_ms);
 
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float            	get_delta_time() const;
-
-private:
+    float                get_delta_time() const;
     uint16_t             _init_sensor( AP_InertialSensor::Sample_rate sample_rate );
+private:
+
 
     void                 _read_data_transaction();
     bool                 _data_ready();

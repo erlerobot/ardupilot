@@ -36,7 +36,15 @@ class AP_InertialSensor_Backend;
 class AP_InertialSensor
 {
 public:
-    AP_InertialSensor();
+    AP_InertialSensor():
+    _accel(),
+    _gyro(),
+    _board_orientation(ROTATION_NONE)
+{
+    AP_Param::setup_object_defaults(this, var_info);  
+    primary_instance = 0;      
+}
+
 
     enum Start_style {
         COLD_START = 0,
@@ -54,7 +62,7 @@ public:
 #if !defined( __AVR_ATmega1280__ )
     // perform accelerometer calibration including providing user instructions
     // and feedback
-    virtual bool calibrate_accel(AP_InertialSensor_UserInteract *interact,
+    bool calibrate_accel(AP_InertialSensor_UserInteract *interact,
                                  float& trim_roll,
                                  float& trim_pitch);
     // Calibration routines borrowed from Rolfe Schmidt

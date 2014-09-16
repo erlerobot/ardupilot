@@ -292,7 +292,7 @@ bool AP_InertialSensor_MPU9250::wait_for_sample(uint16_t timeout_ms)
 /*
   update the accel and gyro vectors
  */
-bool AP_InertialSensor_MPU9250::update( void )
+bool AP_InertialSensor_MPU9250::_update( void )
 {
     if (!wait_for_sample(1000)) {
         return false;
