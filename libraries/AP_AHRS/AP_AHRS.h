@@ -119,12 +119,12 @@ public:
         _flags.wind_estimation = b;
     }
 
-    void set_compass(Compass *compass) {
+    void set_compass(AP_Compass *compass) {
         _compass = compass;
         set_orientation();
     }
 
-    const Compass* get_compass() const {
+    const AP_Compass* get_compass() const {
         return _compass;
     }
         
@@ -365,7 +365,7 @@ protected:
     void update_trig(void);
 
     // pointer to compass object, if available
-    Compass         * _compass;
+    AP_Compass         * _compass;
 
     // pointer to airspeed object, if available
     AP_Airspeed     * _airspeed;
