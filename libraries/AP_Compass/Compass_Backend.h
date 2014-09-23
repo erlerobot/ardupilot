@@ -26,7 +26,7 @@
 class AP_Compass_Backend
 {
 public:   
-    AP_Compass_Backend(AP_Compass &_compass, AP_Compass::Compass_State &_state)
+    AP_Compass_Backend(AP_Compass &_compass, AP_Compass::Compass_State &_state);
     
     // we declare a virtual destructor so that Compass drivers can
     // override with a custom destructor if need be.
@@ -37,6 +37,8 @@ public:
     virtual bool read() = 0;
 
     virtual void accumulate(void) = 0;
+
+    void learn_offsets(void);
 
 protected:
     AP_Compass                          &compass;                        ///< access to frontend (for parameters)

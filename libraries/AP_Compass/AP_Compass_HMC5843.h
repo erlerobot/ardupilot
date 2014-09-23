@@ -31,7 +31,7 @@ private:
     uint32_t            _last_accum_time;
 
 public:
-    AP_Compass_HMC5843(AP_Compass &_compass);
+    AP_Compass_HMC5843(AP_Compass &_compass, AP_Compass::Compass_State &_state);
     bool        init(void);
     bool        read(void);
     void        accumulate(void);

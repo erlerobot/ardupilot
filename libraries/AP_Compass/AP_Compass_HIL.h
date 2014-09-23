@@ -7,7 +7,7 @@
 class AP_Compass_HIL : public AP_Compass_Backend
 {
 public:
-    AP_Compass_HIL(AP_Compass &_compass);
+    AP_Compass_HIL(AP_Compass &_compass, AP_Compass::Compass_State &_state);
     bool        read(void);
     void        accumulate(void);
     void        setHIL(float roll, float pitch, float yaw);

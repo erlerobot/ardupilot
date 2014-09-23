@@ -59,8 +59,8 @@ extern const AP_HAL::HAL& hal;
 #define DataOutputRate_75HZ   0x06
 
 //Constructor
-AP_Compass_HMC5843::AP_Compass_HMC5843(AP_Compass &_compass):
-    AP_Compass_Backend(_compass)
+AP_Compass_HMC5843::AP_Compass_HMC5843(AP_Compass &_compass, AP_Compass::Compass_State &_state):
+    AP_Compass_Backend(_compass, _state)
 {
         hal.console->println("HMC5843");
 }
@@ -69,7 +69,7 @@ AP_Compass_HMC5843::AP_Compass_HMC5843(AP_Compass &_compass):
 bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 {
     if (hal.i2c->readRegister((uint8_t)COMPASS_ADDRESS, address, value) != 0) {
-        compass._healthy[0] = false;
+        state._healthy = false;
         return false;
     }
     return true;
@@ -79,7 +79,7 @@ bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 bool AP_Compass_HMC5843::write_register(uint8_t address, uint8_t value)
 {
     if (hal.i2c->writeRegister((uint8_t)COMPASS_ADDRESS, address, value) != 0) {
-        compass._healthy[0] = false;
+        state._healthy = false;
         return false;
     }
     return true;
@@ -91,17 +91,17 @@ bool AP_Compass_HMC5843::read_raw()
     uint8_t buff[6];
 
     if (hal.i2c->readRegisters(COMPASS_ADDRESS, 0x03, 6, buff) != 0) {
-        if (compass._healthy[0]) {
+        if (state._healthy) {
 			hal.i2c->setHighSpeed(false);
         }
-        compass._healthy[0] = false;
+        state._healthy = false;
         _i2c_sem->give();
         return false;
     }
 
     int16_t rx, ry, rz;
     rx = (((int16_t)buff[0]) << 8) | buff[1];
-    if (compass.product_id == AP_COMPASS_TYPE_HMC5883L) {
+    if (state.product_id == AP_COMPASS_TYPE_HMC5883L) {
         rz = (((int16_t)buff[2]) << 8) | buff[3];
         ry = (((int16_t)buff[4]) << 8) | buff[5];
     } else {
@@ -131,7 +131,7 @@ void AP_Compass_HMC5843::accumulate(void)
         return;
     }
    uint32_t tnow = hal.scheduler->micros();
-   if (compass._healthy[0] && _accum_count != 0 && (tnow - _last_accum_time) < 13333) {
+   if (state._healthy && _accum_count != 0 && (tnow - _last_accum_time) < 13333) {
 	  // the compass gets new data at 75Hz
 	  return;
    }
@@ -199,13 +199,13 @@ AP_Compass_HMC5843::init()
     _base_config = 0;
     if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation) ||
         !read_register(ConfigRegA, &_base_config)) {
-        compass._healthy[0] = false;
+        state._healthy = false;
         _i2c_sem->give();
         return false;
     }
     if ( _base_config == (SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)) {
         // a 5883L supports the sample averaging config
-        compass.product_id = AP_COMPASS_TYPE_HMC5883L;
+        state.product_id = AP_COMPASS_TYPE_HMC5883L;
         calibration_gain = 0x60;
         /*
           note that the HMC5883 datasheet gives the x and y expected
@@ -216,7 +216,7 @@ AP_Compass_HMC5843::init()
         expected_yz  = 713;
         gain_multiple = 660.0 / 1090;  // adjustment for runtime vs calibration gain
     } else if (_base_config == (NormalOperation | DataOutputRate_75HZ<<2)) {
-        compass.product_id = AP_COMPASS_TYPE_HMC5843;
+        state.product_id = AP_COMPASS_TYPE_HMC5843;
     } else {
         // not behaving like either supported compass type
         _i2c_sem->give();
@@ -313,7 +313,7 @@ AP_Compass_HMC5843::init()
     _initialised = true;
 
 	// perform an initial read
-	compass._healthy[0] = true;
+	state._healthy = true;
 	read();
 
 #if 0
@@ -333,7 +333,7 @@ bool AP_Compass_HMC5843::read()
         // have the right orientation!)
         return false;
     }
-    if (!compass._healthy[0]) {
+    if (!state._healthy) {
         if (hal.scheduler->millis() < _retry_time) {
             return false;
         }
@@ -346,7 +346,7 @@ bool AP_Compass_HMC5843::read()
 
 	if (_accum_count == 0) {
 	   accumulate();
-	   if (!compass._healthy[0] || _accum_count == 0) {
+	   if (!state._healthy || _accum_count == 0) {
 		  // try again in 1 second, and set I2c clock speed slower
 		  _retry_time = hal.scheduler->millis() + 1000;
 		  hal.i2c->setHighSpeed(false);
@@ -354,42 +354,42 @@ bool AP_Compass_HMC5843::read()
 	   }
 	}
 
-	compass._field[0].x = _mag_x_accum * calibration[0] / _accum_count;
-	compass._field[0].y = _mag_y_accum * calibration[1] / _accum_count;
-	compass._field[0].z = _mag_z_accum * calibration[2] / _accum_count;
+	state._field.x = _mag_x_accum * calibration[0] / _accum_count;
+	state._field.y = _mag_y_accum * calibration[1] / _accum_count;
+	state._field.z = _mag_z_accum * calibration[2] / _accum_count;
 	_accum_count = 0;
 	_mag_x_accum = _mag_y_accum = _mag_z_accum = 0;
 
-    compass.last_update = hal.scheduler->micros(); // record time of update
+    state.last_update = hal.scheduler->micros(); // record time of update
 
     // rotate to the desired orientation
-    if (compass.product_id == AP_COMPASS_TYPE_HMC5883L) {
-        compass._field[0].rotate(ROTATION_YAW_90);
+    if (state.product_id == AP_COMPASS_TYPE_HMC5883L) {
+        state._field.rotate(ROTATION_YAW_90);
     }
 
     // apply default board orientation for this compass type. This is
     // a noop on most boards
-    compass._field[0].rotate(MAG_BOARD_ORIENTATION);
+    state._field.rotate(MAG_BOARD_ORIENTATION);
 
     // add user selectable orientation
-    compass._field[0].rotate((enum Rotation)compass._orientation.get());
+    state._field.rotate((enum Rotation)state._orientation.get());
 
-    if (!compass._external) {
+    if (!state._external) {
         // and add in AHRS_ORIENTATION setting if not an external compass
-       compass. _field[0].rotate(compass._board_orientation);
+       state. _field.rotate(state._board_orientation);
     }
 
-    compass._field[0] += compass._offset[0].get();
+    state._field += state._offset.get();
 
     // apply motor compensation
-    if(compass._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && compass._thr_or_curr != 0.0f) {
-        compass._motor_offset[0] = compass._motor_compensation[0].get() * compass._thr_or_curr;
-        compass._field[0] += compass._motor_offset[0];
+    if(state._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && state._thr_or_curr != 0.0f) {
+        state._motor_offset = state._motor_compensation.get() * state._thr_or_curr;
+        state._field += state._motor_offset;
     }else{
-        compass._motor_offset[0].zero();
+        state._motor_offset.zero();
     }
 
-    compass._healthy[0] = true;
+    state._healthy = true;
 
     return true;
 }

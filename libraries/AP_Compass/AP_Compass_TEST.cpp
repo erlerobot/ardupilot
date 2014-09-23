@@ -37,10 +37,10 @@ extern const AP_HAL::HAL& hal;
 
 // Public Methods //////////////////////////////////////////////////////////////
 
-AP_Compass_TEST::AP_Compass_TEST(AP_Compass &_compass):
-    AP_Compass_Backend(_compass)
+AP_Compass_TEST::AP_Compass_TEST(AP_Compass &_compass, AP_Compass::Compass_State &_state):
+    AP_Compass_Backend(_compass, _state)
 {
-    compass.product_id = AP_COMPASS_TYPE_UNKNOWN; //We will use the unknown type for the testing class
+    state.product_id = AP_COMPASS_TYPE_UNKNOWN; //We will use the unknown type for the testing class
     _num_instances = 0;
     hal.console->println("TEST-DRIVER");
 }
@@ -52,20 +52,16 @@ bool AP_Compass_TEST::init(void)
 	
     _num_instances = 1;
    compass.set_field(Vector3f(1, 1, 1));
-    for (uint8_t i=0; i<_num_instances; i++) {
         // get device id
-        
 
-
-        _count[0] = 0;
-        _sum[i].zero();
-        compass._healthy[i] = false;
-    }
+        _count = 0;
+        _sum.zero();
+        state._healthy = false;
 
     // give the driver a chance to run, and gather one sample
     hal.scheduler->delay(40);
     accumulate();
-    if (_count[0] == 0) {
+    if (_count == 0) {
         hal.console->printf("Failed initial compass accumulate\n");        
     }
     return true;
@@ -77,50 +73,41 @@ bool AP_Compass_TEST::read(void)
     accumulate();
 
     // consider the compass healthy if we got a reading in the last 0.2s
-    for (uint8_t i=0; i<_num_instances; i++) {
-        compass._healthy[i] = true;
-    }
+        state._healthy = true;
 
-    for (uint8_t i=0; i<_num_instances; i++) {
-        // avoid division by zero if we haven't received any mag reports
-        if (_count[i] == 0) continue;
+        _count =1; 
 
-        _sum[i] /= _count[i];
-        _sum[i] *= 1000;
+        _sum /= _count;
+        _sum *= 1000;
 
-         _sum[i] += compass._offset[i].get();
+         _sum += state._offset.get();
 
         // apply motor compensation
-        if (compass._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && compass._thr_or_curr != 0.0f) {
-            compass._motor_offset[i] = compass._motor_compensation[i].get() * compass._thr_or_curr;
-            _sum[i] += compass._motor_offset[i];
+        if (state._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && state._thr_or_curr != 0.0f) {
+            state._motor_offset = state._motor_compensation.get() * state._thr_or_curr;
+            _sum += state._motor_offset;
         } else {
-            compass._motor_offset[i].zero();
+            state._motor_offset.zero();
         }
     
-        compass._field[i] = _sum[i];
+        state._field = _sum;
     
-        _sum[i].zero();
-        _count[i] = 0;
-    }
+        _sum.zero();
+        _count = 0;
 
-    compass.last_update = _last_timestamp[get_primary()];
+    state.last_update = _last_timestamp;
     
     return true;
 }
 
 void AP_Compass_TEST::accumulate(void)
 {
-   
-    for (uint8_t i=0; i<_num_instances; i++) {
-        
-            Vector3f f = compass.get_field(i);
+            Vector3f f = compass.get_field();
             f.x++;
             f.y++;
             f.z++;
 
             compass.set_field(f);            
-    }
 }
 
 uint8_t AP_Compass_TEST::get_primary(void) const

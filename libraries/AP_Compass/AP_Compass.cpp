@@ -462,5 +462,12 @@ uint8_t AP_Compass::motor_compensation_type() const
     return state[get_primary()]._motor_comp_type;
 }
 
+void AP_Compass::learn_offsets(void)
+{
+    for (uint8_t k=0; k<COMPASS_MAX_INSTANCES; k++) {
+        drivers[k]->learn_offsets();
+    }
+}
+
 
 
