@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #include <AP_Progmem.h>
 #include "AP_Compass.h"
-
+#include <stdio.h>
 const AP_Param::GroupInfo AP_Compass::var_info[] PROGMEM = {
     // index 0 was used for the old orientation matrix
 
@@ -145,7 +145,7 @@ void
 AP_Compass::detect_instance(uint8_t instance)
 {
     AP_Compass_Backend *new_compass = NULL;
-/*    
+
     state[instance].instance = instance;
     state[instance]._board_orientation = ROTATION_NONE;
 
@@ -166,7 +166,7 @@ AP_Compass::detect_instance(uint8_t instance)
 	if (new_compass != NULL) {
         drivers[instance] = new_compass;
         drivers[instance]->init();
-	}*/
+	}
 }
 
 
@@ -292,7 +292,7 @@ AP_Compass::get_declination() const
 
 
 //calculate a compass heading given the attitude from DCM and the mag vector
- 
+
 float
 AP_Compass::calculate_heading(const Matrix3f &dcm_matrix) const
 {
@@ -300,12 +300,18 @@ AP_Compass::calculate_heading(const Matrix3f &dcm_matrix) const
 
     float cos_pitch_sq = 1.0f-(dcm_matrix.c.x*dcm_matrix.c.x);
 
+
     // Tilt compensated magnetic field Y component:
-    float headY = state[get_primary()]._field.y * dcm_matrix.c.z - state[get_primary()]._field.z * dcm_matrix.c.y;
+    for(uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++){
+        Vector3f field = get_field(i);
+        printf("I=%d    %f  %f  %f\n",i, field.x, field.y, field.z);
+    }
+    float headY = state[2]._field.y * dcm_matrix.c.z - state[2]._field.z * dcm_matrix.c.y;
 
     // Tilt compensated magnetic field X component:
     float headX = state[get_primary()]._field.x * cos_pitch_sq - dcm_matrix.c.x * (state[get_primary()]._field.y * dcm_matrix.c.y + state[get_primary()]._field.z * dcm_matrix.c.z);
 
+        printf("headY: %f   headX: %f\n",headY, headX);
     // magnetic heading
     // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
     float heading = constrain_float(atan2f(-headY,headX), -3.15f, 3.15f);
