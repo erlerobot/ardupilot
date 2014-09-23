@@ -26,7 +26,7 @@
 class AP_Compass_Backend
 {
 public:   
-    AP_Compass_Backend(AP_Compass &_compass);
+    AP_Compass_Backend(AP_Compass &_compass, AP_Compass::Compass_State &_state)
     
     // we declare a virtual destructor so that Compass drivers can
     // override with a custom destructor if need be.
@@ -39,7 +39,8 @@ public:
     virtual void accumulate(void) = 0;
 
 protected:
-    AP_Compass &compass;                        ///< access to frontend (for parameters)
+    AP_Compass                          &compass;                        ///< access to frontend (for parameters)
+    AP_Compass::Compass_State           &state;                          ///< public state for this instance
     // common utility functions
    // int32_t swap_int32(int32_t v) const;
     //int16_t swap_int16(int16_t v) const;

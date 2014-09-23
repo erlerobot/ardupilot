@@ -17,8 +17,9 @@
 #include <AP_Compass.h>
 
 
-AP_Compass_Backend::AP_Compass_Backend(AP_Compass &_compass):
-    compass(_compass)
+AP_Compass_Backend::AP_Compass_Backend(AP_Compass &_compass, AP_Compass::Compass_State &_state):
+    compass(_compass),
+    state(_state)
 {
 }
 
