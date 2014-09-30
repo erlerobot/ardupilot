@@ -305,6 +305,7 @@ private:
 #include <AP_Compass_VRBRAIN.h>
 
 //#include <AP_Compass_TEST.h>
+#include <AP_Compass_MPU9250.h>
 
 #endif
 

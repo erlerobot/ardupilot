@@ -156,7 +156,7 @@ AP_Compass::detect_instance(uint8_t instance)
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4 && COMPASS_EXPECTED_DEV_ID != 73225 //PX4
     new_compass = new AP_Compass_PX4(*this, state[instance]);
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-//    new_compass = new AP_Compass_MPU9250(*this, state[instance]);
+    new_compass = new AP_Compass_MPU9250(*this, state[instance]);
 //    new_compass = new AP_Compass_TEST(*this, state[instance]); //TEST-DRIVER, we will use it when the compass type is unknown
 #else
     #error Unrecognized COMPASS
