@@ -269,6 +269,12 @@ public:
     /// @param amps                 current flowing to the motors expressed in amps
     void set_current(float amps);
 
+    bool _learn_load_all(void);
+
+    void _learn_set_and_save_all(uint8_t val);
+
+    const uint32_t get_last_update() const;
+
     /// Returns True if the compasses have been configured (i.e. offsets saved)
     ///
     /// @returns                    True if compass has been configured

@@ -157,9 +157,8 @@ AP_Compass::detect_instance(uint8_t instance)
     new_compass = new AP_Compass_PX4(*this, state[instance]);
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 //    new_compass = new AP_Compass_MPU9250(*this, state[instance]);
-    new_compass = new AP_Compass_TEST(*this, state[instance]); //TEST-DRIVER, we will use it when the compass type is unknown
+//    new_compass = new AP_Compass_TEST(*this, state[instance]); //TEST-DRIVER, we will use it when the compass type is unknown
 #else
-
     #error Unrecognized COMPASS
 #endif
  
@@ -473,6 +472,28 @@ void AP_Compass::learn_offsets(void)
     for (uint8_t k=0; k<COMPASS_MAX_INSTANCES; k++) {
         drivers[k]->learn_offsets();
     }
+}
+
+bool AP_Compass::_learn_load_all(void)
+{
+    for (uint8_t k=0; k<COMPASS_MAX_INSTANCES; k++) {
+        if(!state[k]._learn.load())
+            return false;
+    }
+    return true;
+}
+
+void AP_Compass::_learn_set_and_save_all(uint8_t val)
+{
+    for (uint8_t k=0; k<COMPASS_MAX_INSTANCES; k++) {
+        state[k]._learn.set_and_save(val);
+    }
+}
+
+//TODO primary's value??
+const uint32_t AP_Compass::get_last_update() const 
+{
+    return state[get_primary()].last_update;
 }
 
 
