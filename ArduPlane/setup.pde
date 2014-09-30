@@ -366,8 +366,12 @@ static void report_ins()
 
 static void report_compass()
 {
+    /* This code does not work and it is not needed. Frontend layer can have more than one product_id as it's multisensor.
+       Anyway, the frontend layer will print the compass types when it instantiates them.
+  
     //print_blanks(2);
     cliSerial->printf_P(PSTR("Compass: "));
+
 
     switch (compass.product_id) {
     case AP_COMPASS_TYPE_HMC5883L:
@@ -389,7 +393,7 @@ static void report_compass()
         cliSerial->println_P(PSTR("(unknown)"));
         break;
     }
-
+    */
     print_divider();
 
     print_enabled(g.compass_enabled);

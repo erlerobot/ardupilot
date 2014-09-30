@@ -3,15 +3,12 @@
 #ifndef AP_Compass_VRBRAIN_H
 #define AP_Compass_VRBRAIN_H
 
-#include "Compass.h"
+#include <AP_Compass.h>
 
-class AP_Compass_VRBRAIN : public Compass
+class AP_Compass_VRBRAIN : public AP_Compass_Backend
 {
 public:
-    AP_Compass_VRBRAIN() : Compass() {
-        product_id = AP_COMPASS_TYPE_VRBRAIN;
-        _num_instances = 0;
-    }
+    AP_Compass_VRBRAIN(AP_Compass &_compass, AP_Compass::Compass_State &_state);
     bool        init(void);
     bool        read(void);
     void        accumulate(void);
@@ -24,11 +21,11 @@ public:
 
 private:
     uint8_t _num_instances;
-    int _mag_fd[COMPASS_MAX_INSTANCES];
-    Vector3f _sum[COMPASS_MAX_INSTANCES];
-    uint32_t _count[COMPASS_MAX_INSTANCES];
-    uint64_t _last_timestamp[COMPASS_MAX_INSTANCES];
-    bool _is_external[COMPASS_MAX_INSTANCES];
+    int _mag_fd;
+    Vector3f _sum;
+    uint32_t _count;
+    uint64_t _last_timestamp;
+    bool _is_external;
 };
 
 #endif // AP_Compass_VRBRAIN_H

@@ -933,8 +933,8 @@ const AP_Param::Info var_info[] PROGMEM = {
 #endif
 
     // @Group: COMPASS_
-    // @Path: ../libraries/AP_Compass/Compass.cpp
-    GOBJECT(compass,        "COMPASS_", Compass),
+    // @Path: ../libraries/AP_Compass/AP_Compass.cpp
+    GOBJECT(compass,        "COMPASS_", AP_Compass),
 
     // @Group: INS_
     // @Path: ../libraries/AP_InertialSensor/AP_InertialSensor.cpp
@@ -1164,8 +1164,8 @@ static void load_parameters(void)
 
     // setup different Compass learn setting for ArduCopter than the default
     // but allow users to override in their config
-    if (!compass._learn.load()) {
-        compass._learn.set_and_save(0);
+    if (!compass._learn_load_all()) {
+        compass._learn_set_and_save_all(0);
     }
 
     if (!g.format_version.load() ||

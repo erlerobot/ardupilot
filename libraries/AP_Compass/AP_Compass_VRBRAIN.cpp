@@ -40,51 +40,62 @@ extern const AP_HAL::HAL& hal;
 
 
 // Public Methods //////////////////////////////////////////////////////////////
+// constructor
+AP_Compass_VRBRAIN::AP_Compass_VRBRAIN(AP_Compass &_compass), AP_Compass::Compass_State &_state):
+    AP_Compass_Backend(_compass, _state)
+{
+    state.product_id = AP_COMPASS_TYPE_VRBRAIN;
+    state._num_instances = 0;
+//    hal.console->println("VRBRAIN");
+}
+
+
+
 
 bool AP_Compass_VRBRAIN::init(void)
 {
-	_mag_fd[0] = open(MAG_DEVICE_PATH, O_RDONLY);
-    _mag_fd[1] = open(MAG_DEVICE_PATH "1", O_RDONLY);
+	_mag_fd = open(MAG_DEVICE_PATH, O_RDONLY);
+    //_mag_fd[1] = open(MAG_DEVICE_PATH "1", O_RDONLY);
     _num_instances = 0;
-    for (uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++) {
-        if (_mag_fd[i] >= 0) {
+    //for (uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++) {
+        if (_mag_fd >= 0) {
             _num_instances = i+1;
         }
-    }
+    //}
     if (_num_instances == 0) {
         hal.console->printf("Unable to open " MAG_DEVICE_PATH "\n");
         return false;
 	}
 
-    for (uint8_t i=0; i<_num_instances; i++) {
+    //for (uint8_t i=0; i<_num_instances; i++) {
         // get device id
-        _dev_id[i] = ioctl(_mag_fd[i], DEVIOCGDEVICEID, 0);
+        state._dev_id = ioctl(_mag_fd, DEVIOCGDEVICEID, 0);
 
         // average over up to 20 samples
-        if (ioctl(_mag_fd[i], SENSORIOCSQUEUEDEPTH, 20) != 0) {
+        if (ioctl(_mag_fd, SENSORIOCSQUEUEDEPTH, 20) != 0) {
             hal.console->printf("Failed to setup compass queue\n");
             return false;                
         }
 
         // remember if the compass is external
-        _is_external[i] = (ioctl(_mag_fd[i], MAGIOCGEXTERNAL, 0) > 0);
+        _is_external = (ioctl(_mag_fd, MAGIOCGEXTERNAL, 0) > 0);
 #if defined(CONFIG_ARCH_BOARD_VRBRAIN_V45)
 		//deal with situations where user has cut internal mag on VRBRAIN 4.5 
 		//and uses only one external mag attached to the internal I2C bus
-		_is_external[i] = _external.load() ? _external.get() : _is_external[i];
+		_is_external = _external.load() ? _external.get() : _is_external;
 #endif
-        if (_is_external[i]) {
+        if (_is_external) {
             hal.console->printf("Using external compass[%u]\n", (unsigned)i);
         }
-        _count[0] = 0;
-        _sum[i].zero();
-        _healthy[i] = false;
-    }
+        _count = 0;
+        _sum.zero();
+        state._healthy = false;
+    //}
 
     // give the driver a chance to run, and gather one sample
     hal.scheduler->delay(40);
     accumulate();
-    if (_count[0] == 0) {
+    if (_count == 0) {
         hal.console->printf("Failed initial compass accumulate\n");        
     }
     return true;
@@ -96,75 +107,75 @@ bool AP_Compass_VRBRAIN::read(void)
     accumulate();
 
     // consider the compass healthy if we got a reading in the last 0.2s
-    for (uint8_t i=0; i<_num_instances; i++) {
-        _healthy[i] = (hal.scheduler->micros64() - _last_timestamp[i] < 200000);
-    }
+   // for (uint8_t i=0; i<_num_instances; i++) {
+        state._healthy = (hrt_absolute_time() - _last_timestamp < 200000);
+    //}
 
-    for (uint8_t i=0; i<_num_instances; i++) {
+    //for (uint8_t i=0; i<_num_instances; i++) {
         // avoid division by zero if we haven't received any mag reports
-        if (_count[i] == 0) continue;
+        if (_count == 0) continue;
 
-        _sum[i] /= _count[i];
-        _sum[i] *= 1000;
+        _sum /= _count;
+        _sum *= 1000;
 
         // apply default board orientation for this compass type. This is
         // a noop on most boards
-        _sum[i].rotate(MAG_BOARD_ORIENTATION);
+        _sum.rotate(MAG_BOARD_ORIENTATION);
 
         // override any user setting of COMPASS_EXTERNAL 
         //_external.set(_is_external[0]);
 
-        if (_is_external[i]) {
+        if (_is_external) {
             // add user selectable orientation
-            _sum[i].rotate((enum Rotation)_orientation.get());
+            _sum.rotate((enum Rotation)state._orientation.get());
         } else {
             // add in board orientation from AHRS
-            _sum[i].rotate(_board_orientation);
+            _sum.rotate(state._board_orientation);
         }
 
-        _sum[i] += _offset[i].get();
+        _sum += state._offset.get();
 
         // apply motor compensation
-        if (_motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && _thr_or_curr != 0.0f) {
-            _motor_offset[i] = _motor_compensation[i].get() * _thr_or_curr;
-            _sum[i] += _motor_offset[i];
+        if (state._motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && state._thr_or_curr != 0.0f) {
+            state._motor_offset = state._motor_compensation.get() * state._thr_or_curr;
+            _sum += state._motor_offset;
         } else {
-            _motor_offset[i].zero();
+            state._motor_offset.zero();
         }
     
-        _field[i] = _sum[i];
+        state._field = _sum;
     
-        _sum[i].zero();
-        _count[i] = 0;
-    }
+        _sum.zero();
+        _count = 0;
+    //}
 
-    last_update = _last_timestamp[get_primary()];
+    state.last_update = _last_timestamp;
     
-    return _healthy[get_primary()];
+    return state._healthy;
 }
 
 void AP_Compass_VRBRAIN::accumulate(void)
 {
     struct mag_report mag_report;
-    for (uint8_t i=0; i<_num_instances; i++) {
-        while (::read(_mag_fd[i], &mag_report, sizeof(mag_report)) == sizeof(mag_report) &&
-               mag_report.timestamp != _last_timestamp[i]) {
-            _sum[i] += Vector3f(mag_report.x, mag_report.y, mag_report.z);
-            _count[i]++;
-            _last_timestamp[i] = mag_report.timestamp;
+    //for (uint8_t i=0; i<_num_instances; i++) {
+        while (::read(_mag_fd, &mag_report, sizeof(mag_report)) == sizeof(mag_report) &&
+               mag_report.timestamp != _last_timestamp) {
+            _sum += Vector3f(mag_report.x, mag_report.y, mag_report.z);
+            _count++;
+            _last_timestamp = mag_report.timestamp;
         }
-    }
+    //}
 }
 
 uint8_t AP_Compass_VRBRAIN::get_primary(void) const
 {
-    if (_primary < _num_instances && _healthy[_primary]) {
-        return _primary;
-    }
-    for (uint8_t i=0; i<_num_instances; i++) {
-        if (_healthy[i]) return i;
+    //if (state._primary < _num_instances && state._healthy) {
+        return state._primary;
+    //}
+    /*for (uint8_t i=0; i<_num_instances; i++) {
+        if (compass._healthy[i]) return i;
     }    
-    return 0;
+    return 0;*/
 }
 
 #endif // CONFIG_HAL_BOARD

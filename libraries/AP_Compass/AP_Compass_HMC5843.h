@@ -6,9 +6,9 @@
 #include "../AP_Common/AP_Common.h"
 #include "../AP_Math/AP_Math.h"
 
-#include "Compass.h"
+#include <AP_Compass.h>
 
-class AP_Compass_HMC5843 : public Compass
+class AP_Compass_HMC5843 : public AP_Compass_Backend
 {
 private:
     float               calibration[3];
@@ -31,8 +31,7 @@ private:
     uint32_t            _last_accum_time;
 
 public:
-    AP_Compass_HMC5843() : Compass() {
-    }
+    AP_Compass_HMC5843(AP_Compass &_compass, AP_Compass::Compass_State &_state);
     bool        init(void);
     bool        read(void);
     void        accumulate(void);

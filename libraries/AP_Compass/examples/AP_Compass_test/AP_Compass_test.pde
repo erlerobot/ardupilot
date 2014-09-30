@@ -21,6 +21,10 @@
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
+
+
+static AP_Compass compass;
+/*
 #define CONFIG_COMPASS HAL_COMPASS_DEFAULT
 
 #if CONFIG_COMPASS == HAL_COMPASS_PX4
@@ -29,12 +33,14 @@ static AP_Compass_PX4 compass;
 static AP_Compass_VRBRAIN compass;
 #elif CONFIG_COMPASS == HAL_COMPASS_HMC5843
 static AP_Compass_HMC5843 compass;
+#elif CONFIG_COMPASS == HAL_COMPASS_MPU9250
+static AP_Compass_MPU9250 compass;
 #elif CONFIG_COMPASS == HAL_COMPASS_HIL
 static AP_Compass_HIL compass;
 #else
  #error Unrecognized CONFIG_COMPASS setting
 #endif
-
+*/
 uint32_t timer;
 
 void setup() {
@@ -48,7 +54,7 @@ void setup() {
 
     compass.set_and_save_offsets(0,0,0,0); // set offsets to account for surrounding interference
     compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
-
+/*
     hal.console->print("Compass auto-detected as: ");
     switch( compass.product_id ) {
     case AP_COMPASS_TYPE_HIL:
@@ -61,13 +67,14 @@ void setup() {
         hal.console->println("HMC5883L");
         break;
     case AP_COMPASS_TYPE_PX4:
-        hal.console->println("PX4");
+        //hal.console->println("PX4");
+        hal.console->println("MPU9250");
         break;
     default:
         hal.console->println("unknown");
         break;
     }
-
+*/
     hal.scheduler->delay(1000);
     timer = hal.scheduler->micros();
 }

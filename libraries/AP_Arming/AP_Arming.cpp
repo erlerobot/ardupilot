@@ -46,7 +46,7 @@ const AP_Param::GroupInfo AP_Arming::var_info[] PROGMEM = {
 
 //The function point is particularly hacky, hacky, tacky
 //but I don't want to reimplement messaging to GCS at the moment:
-AP_Arming::AP_Arming(const AP_AHRS &ahrs_ref, const AP_Baro &baro, Compass &compass,
+AP_Arming::AP_Arming(const AP_AHRS &ahrs_ref, const AP_Baro &baro, AP_Compass &compass,
                      const bool &home_set, gcs_send_t_p gcs_print_func)
    : armed(false)
    , arming_method(NONE)

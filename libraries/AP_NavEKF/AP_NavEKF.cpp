@@ -3098,9 +3098,9 @@ void NavEKF::readHgtData()
 // check for new magnetometer data and update store measurements if available
 void NavEKF::readMagData()
 {
-    if (use_compass() && _ahrs->get_compass()->last_update != lastMagUpdate) {
+    if (use_compass() && _ahrs->get_compass()->get_last_update() != lastMagUpdate) {
         // store time of last measurement update
-        lastMagUpdate = _ahrs->get_compass()->last_update;
+        lastMagUpdate = _ahrs->get_compass()->get_last_update();
 
         // read compass data and assign to bias and uncorrected measurement
         // body fixed magnetic bias is opposite sign to APM compass offsets

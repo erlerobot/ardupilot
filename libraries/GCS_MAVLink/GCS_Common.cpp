@@ -1039,7 +1039,7 @@ void GCS_MAVLINK::send_radio_in(uint8_t receiver_rssi)
 #endif
 }
 
-void GCS_MAVLINK::send_raw_imu(const AP_InertialSensor &ins, const Compass &compass)
+void GCS_MAVLINK::send_raw_imu(const AP_InertialSensor &ins, const AP_Compass &compass)
 {
     const Vector3f &accel = ins.get_accel(0);
     const Vector3f &gyro = ins.get_gyro(0);
@@ -1092,7 +1092,7 @@ void GCS_MAVLINK::send_scaled_pressure(AP_Baro &barometer)
         barometer.get_temperature()*100); // 0.01 degrees C
 }
 
-void GCS_MAVLINK::send_sensor_offsets(const AP_InertialSensor &ins, const Compass &compass, AP_Baro &barometer)
+void GCS_MAVLINK::send_sensor_offsets(const AP_InertialSensor &ins, const AP_Compass &compass, AP_Baro &barometer)
 {
     // run this message at a much lower rate - otherwise it
     // pointlessly wastes quite a lot of bandwidth

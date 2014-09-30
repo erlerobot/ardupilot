@@ -515,6 +515,9 @@ static void report_throttle()
 
 static void report_compass()
 {
+    /* This code does not work and it is not needed. Frontend layer can have more than one product_id as it's multisensor.
+    Anyway, the frontend layer will print the compass types when it instantiates them.
+
 	//print_blanks(2);
 	cliSerial->printf_P(PSTR("Compass: "));
 
@@ -532,7 +535,7 @@ static void report_compass()
         cliSerial->println_P(PSTR("??"));
         break;
     }
-
+	*/
 	print_divider();
 
 	print_enabled(g.compass_enabled);

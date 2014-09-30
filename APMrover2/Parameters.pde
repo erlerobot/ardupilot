@@ -455,7 +455,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Group: COMPASS_
     // @Path: ../libraries/AP_Compass/Compass.cpp
-	GOBJECT(compass,                "COMPASS_",	Compass),
+	GOBJECT(compass,                "COMPASS_",	AP_Compass),
 
     // @Group: SCHED_
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp

@@ -272,23 +272,13 @@ static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::spi);
 #endif
 static Baro_Glitch baro_glitch(barometer);
 
-#if CONFIG_COMPASS == HAL_COMPASS_PX4
-static AP_Compass_PX4 compass;
-#elif CONFIG_COMPASS == HAL_COMPASS_VRBRAIN
-static AP_Compass_VRBRAIN compass;
-#elif CONFIG_COMPASS == HAL_COMPASS_HMC5843
-static AP_Compass_HMC5843 compass;
-#elif CONFIG_COMPASS == HAL_COMPASS_HIL
-static AP_Compass_HIL compass;
-#else
- #error Unrecognized CONFIG_COMPASS setting
-#endif
+static AP_Compass compass;
 
 #if CONFIG_INS_TYPE == HAL_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
 AP_ADC_ADS7844 apm1_adc;
 #endif
 
-#if CONFIG_INS_TYPE == HAL_INS_MPU6000
+/*#if CONFIG_INS_TYPE == HAL_INS_MPU6000
 AP_InertialSensor_MPU6000 ins;
 #elif CONFIG_INS_TYPE == HAL_INS_PX4
 AP_InertialSensor_PX4 ins;
@@ -306,7 +296,8 @@ AP_InertialSensor_L3G4200D ins;
 AP_InertialSensor_MPU9250 ins;
 #else
   #error Unrecognised CONFIG_INS_TYPE setting.
-#endif // CONFIG_INS_TYPE
+#endif // CONFIG_INS_TYPE */
+AP_InertialSensor_MPU9250 ins;
 
 // Inertial Navigation EKF
 #if AP_AHRS_NAVEKF_AVAILABLE
