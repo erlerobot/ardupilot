@@ -478,7 +478,7 @@ bool AP_InertialSensor_MPU9250::_hardware_init(Sample_rate sample_rate)
     _register_write(MPUREG_PWR_MGMT_2, 0x00);            // only used for wake-up in accelerometer only low power mode
 
     // Disable I2C bus (recommended on datasheet)
-    _register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
+   // _register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
 
     // sample rate and filtering
     // to minimise the effects of aliasing we choose a filter

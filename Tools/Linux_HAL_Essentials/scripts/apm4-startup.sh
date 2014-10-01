@@ -19,8 +19,6 @@ echo BB-UART5 > /sys/devices/bone_capemgr.*/slots
 echo BB-UART4 > /sys/devices/bone_capemgr.*/slots
 echo BB-UART2 > /sys/devices/bone_capemgr.*/slots
 
-# Set CPU at max speed
-cpufreq-set -f 1000MHz
 
 # Line for making PREEMPT_RT work
 echo 0:rcinpru0 > /sys/devices/ocp.3/4a300000.prurproc/load
@@ -36,6 +34,9 @@ cd /root
     init 3
     #killall -q udhcpd
     while :; do
+	# Set CPU at max speed
+	cpufreq-set -f 1000MHz
+
 	# Start copter, modify if other vehicle is needed
         #./ArduCopter.elf -A /dev/ttyO0 -B /dev/ttyO5
 	./ArduCopter.elf -A tcp:*:6000:wait -B /dev/ttyO5

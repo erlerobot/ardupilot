@@ -137,14 +137,16 @@ bool AP_Baro_MS5611_SPI::sem_take_nonblocking()
     if (!got) {
         if (!hal.scheduler->system_initializing()) {
             semfail_ctr++;
-            if (semfail_ctr > 100) {
+            /* Avoid semaphore conflicts
+            if (semfail_ctr > 100) { 
                 hal.scheduler->panic(PSTR("PANIC: failed to take _spi_sem "
                                           "100 times in a row, in "
                                           "AP_Baro_MS5611::_update"));
-            }
+            }*/
         }
         return false; /* never reached */
     } else {
+//        hal.console->println("AP_Baro_MS5611 gets SPI semaphore");
         semfail_ctr = 0;
     }
     return got;

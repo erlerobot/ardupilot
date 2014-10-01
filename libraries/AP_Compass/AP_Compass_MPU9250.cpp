@@ -194,7 +194,13 @@ void convert2floats(uint16_t ux, uint16_t uy, uint16_t uz){
 bool AP_Compass_MPU9250::read_raw()
 {
     uint8_t buffer[7];
-    uint8_t val = 0x68 | READ_FLAG; // Set most significant bit
+    uint8_t val = MPUREG_ASTC | READ_FLAG; // Set most significant bit
+    
+    if (!_spi_sem->take(100)){
+        // the bus is busy - try again later
+        hal.console->println("read_raw- bus busy");                
+        return false;
+    }
 
     write_register(MPUREG_I2C_SLV0_ADDR, val); //Set the I2C slave addres of AK8963 and set for read.
 
@@ -202,8 +208,10 @@ bool AP_Compass_MPU9250::read_raw()
 
     write_register(MPUREG_I2C_SLV0_CTRL, 0x87); //Tell that we will be reading 6 bytes from the magnetometer
 
-       hal.scheduler->delay(100);
+    //hal.scheduler->delay(100);
     read_registers(MPUREG_EXT_SENS_DATA_00,buffer,6);
+    
+    _spi_sem->give();
 
     mag_x = ((int16_t)buffer[1] << 8) | buffer[0];  // Turn the MSB and LSB into a signed 16-bit value
     mag_y = ((int16_t)buffer[3] << 8) | buffer[2];  // Data stored as little Endian
@@ -238,17 +246,13 @@ void AP_Compass_MPU9250::accumulate(void)
 	  return;
    }*/
 
-    if (!_spi_sem->take(100)){
-    // the bus is busy - try again later
-    hal.console->println("ACCUM- bus busy");                
-           return;
-    }
+    
    bool result = read_raw();
 
    //show_all_registers();
-   hal.scheduler->delay(100);
+  // hal.scheduler->delay(100);
     
-    _spi_sem->give();
+
 
    if (result) {
       mag_x_accum = mag_x_accum + mag_x,
