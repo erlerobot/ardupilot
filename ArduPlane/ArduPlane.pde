@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V3.1.1"
+#define THISFIRMWARE "ArduPlane V3.1.2beta1"
 /*
    Lead developer: Andrew Tridgell
  
@@ -219,29 +219,11 @@ static AP_Compass_HIL compass;
  #error Unrecognized CONFIG_COMPASS setting
 #endif
 
-#if CONFIG_INS_TYPE == HAL_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 AP_ADC_ADS7844 apm1_adc;
 #endif
 
-#if CONFIG_INS_TYPE == HAL_INS_MPU6000
-AP_InertialSensor_MPU6000 ins;
-#elif CONFIG_INS_TYPE == HAL_INS_PX4
-AP_InertialSensor_PX4 ins;
-#elif CONFIG_INS_TYPE == HAL_INS_VRBRAIN
-AP_InertialSensor_VRBRAIN ins;
-#elif CONFIG_INS_TYPE == HAL_INS_HIL
-AP_InertialSensor_HIL ins;
-#elif CONFIG_INS_TYPE == HAL_INS_OILPAN
-AP_InertialSensor_Oilpan ins( &apm1_adc );
-#elif CONFIG_INS_TYPE == HAL_INS_FLYMAPLE
-AP_InertialSensor_Flymaple ins;
-#elif CONFIG_INS_TYPE == HAL_INS_L3G4200D
-AP_InertialSensor_L3G4200D ins;
-#elif CONFIG_INS_TYPE == HAL_INS_MPU9250
-AP_InertialSensor_MPU9250 ins;
-#else
-  #error Unrecognised CONFIG_INS_TYPE setting.
-#endif // CONFIG_INS_TYPE
+AP_InertialSensor ins;
 
 // Inertial Navigation EKF
 #if AP_AHRS_NAVEKF_AVAILABLE
@@ -546,6 +528,12 @@ static struct {
     // in FBWA taildragger takeoff mode
     bool fbwa_tdrag_takeoff_mode:1;
 
+    // have we checked for an auto-land?
+    bool checked_for_autoland:1;
+
+    // denotes if a go-around has been commanded for landing
+    bool commanded_go_around:1;
+
     // Altitude threshold to complete a takeoff command in autonomous modes.  Centimeters
     int32_t takeoff_altitude_cm;
 
@@ -574,6 +562,8 @@ static struct {
     next_wp_no_crosstrack : true,
     no_crosstrack : true,
     fbwa_tdrag_takeoff_mode : false,
+    checked_for_autoland : false,
+    commanded_go_around : false,
     takeoff_altitude_cm : 0,
     takeoff_pitch_cd : 0,
     highest_airspeed : 0,
@@ -730,8 +720,9 @@ static float G_Dt                                               = 0.02f;
 ////////////////////////////////////////////////////////////////////////////////
 // Timer used to accrue data and trigger recording of the performanc monitoring log message
 static uint32_t perf_mon_timer;
-// The maximum main loop execution time recorded in the current performance monitoring interval
+// The maximum and minimum main loop execution time recorded in the current performance monitoring interval
 static uint32_t G_Dt_max = 0;
+static uint32_t G_Dt_min = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // System Timers
@@ -839,17 +830,21 @@ void setup() {
 void loop()
 {
     // wait for an INS sample
-    if (!ins.wait_for_sample(1000)) {
-        return;
-    }
+    ins.wait_for_sample();
+
     uint32_t timer = hal.scheduler->micros();
 
     delta_us_fast_loop  = timer - fast_loopTimer_us;
     G_Dt                = delta_us_fast_loop * 1.0e-6f;
     fast_loopTimer_us   = timer;
 
-    if (delta_us_fast_loop > G_Dt_max)
+    if (delta_us_fast_loop > G_Dt_max) {
         G_Dt_max = delta_us_fast_loop;
+    }
+
+    if (delta_us_fast_loop < G_Dt_min || G_Dt_min == 0) {
+        G_Dt_min = delta_us_fast_loop;
+    }
 
     mainLoop_count++;
 
@@ -1054,11 +1049,14 @@ static void one_second_loop()
 static void log_perf_info()
 {
     if (scheduler.debug() != 0) {
-        gcs_send_text_fmt(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
+        gcs_send_text_fmt(PSTR("G_Dt_max=%lu G_Dt_min=%lu\n"), 
+                          (unsigned long)G_Dt_max, 
+                          (unsigned long)G_Dt_min);
     }
     if (should_log(MASK_LOG_PM))
         Log_Write_Performance();
     G_Dt_max = 0;
+    G_Dt_min = 0;
     resetPerfData();
 }
 
@@ -1419,8 +1417,21 @@ static void update_navigation()
         update_commands();
         break;
             
-    case LOITER:
     case RTL:
+        if (g.rtl_autoland && 
+            !auto_state.checked_for_autoland &&
+            nav_controller->reached_loiter_target() && 
+            labs(altitude_error_cm) < 1000) {
+            // we've reached the RTL point, see if we have a landing sequence
+            jump_to_landing_sequence();
+
+            // prevent running the expensive jump_to_landing_sequence
+            // on every loop
+            auto_state.checked_for_autoland = true;
+        }
+        // fall through to LOITER
+
+    case LOITER:
     case GUIDED:
         // allow loiter direction to be changed in flight
         if (g.loiter_radius < 0) {

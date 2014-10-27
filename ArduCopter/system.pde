@@ -222,9 +222,7 @@ static void init_ardupilot()
     pos_control.set_dt(MAIN_LOOP_SECONDS);
 
     // init the optical flow sensor
-    if(g.optflow_enabled) {
-        init_optflow();
-    }
+    init_optflow();
 
     // initialise inertial nav
     inertial_nav.init();
@@ -251,6 +249,9 @@ static void init_ardupilot()
         gcs_send_text_P(SEVERITY_LOW, PSTR("Waiting for first HIL_STATE message"));
         delay(1000);
     }
+
+    // set INS to HIL mode
+    ins.set_hil_mode();
 #endif
 
     // read Baro pressure at ground
@@ -279,10 +280,6 @@ static void init_ardupilot()
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
-  #ifdef LOG_FROM_STARTUP
-    // start dataflash
-    start_logging();
-  #endif
 #endif
 
     // we don't want writes to the serial port to cause us to pause
@@ -403,5 +400,26 @@ static void telemetry_send(void)
 #if FRSKY_TELEM_ENABLED == ENABLED
     frsky_telemetry.send_frames((uint8_t)control_mode, 
                                 (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
+#endif
+}
+
+/*
+  should we log a message type now?
+ */
+static bool should_log(uint32_t mask)
+{
+#if LOGGING_ENABLED == ENABLED
+    if (!(mask & g.log_bitmask) || in_mavlink_delay) {
+        return false;
+    }
+    bool ret = motors.armed() || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
+    if (ret && !DataFlash.logging_started() && !in_log_download) {
+        // we have to set in_mavlink_delay to prevent logging while
+        // writing headers
+        start_logging();
+    }
+    return ret;
+#else
+    return false;
 #endif
 }

@@ -49,7 +49,7 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
     if (failsafe.radio || failsafe.battery || failsafe.gps || failsafe.gcs || failsafe.ekf)  {
         system_status = MAV_STATE_CRITICAL;
     }
-    
+
     // work out the base_mode. This value is not very useful
     // for APM, but we calculate it as best we can so a generic
     // MAVLink enabled ground station can work out something about
@@ -153,7 +153,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan)
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
     }
 #if OPTFLOW == ENABLED
-    if (g.optflow_enabled) {
+    if (optflow.enabled()) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
     }
 #endif
@@ -265,7 +265,7 @@ static void NOINLINE send_location(mavlink_channel_t chan)
     // allows us to correctly calculate velocities and extrapolate
     // positions.
     // If we don't have a GPS fix then we are dead reckoning, and will
-    // use the current boot time as the fix time.    
+    // use the current boot time as the fix time.
     if (gps.status() >= AP_GPS::GPS_OK_FIX_2D) {
         fix_time = gps.last_fix_time_ms();
     } else {
@@ -579,12 +579,12 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         gcs[chan-MAVLINK_COMM_0].queued_waypoint_send();
         break;
 
-#if CONFIG_SONAR == ENABLED
     case MSG_RANGEFINDER:
+#if CONFIG_SONAR == ENABLED
         CHECK_PAYLOAD_SIZE(RANGEFINDER);
         send_rangefinder(chan);
-        break;
 #endif
+        break;
 
     case MSG_TERRAIN:
 #if AP_TERRAIN_AVAILABLE
@@ -598,12 +598,12 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         send_statustext(chan);
         break;
 
-#if AC_FENCE == ENABLED
     case MSG_LIMITS_STATUS:
+#if AC_FENCE == ENABLED
         CHECK_PAYLOAD_SIZE(LIMITS_STATUS);
         send_limits_status(chan);
-        break;
 #endif
+        break;
 
     case MSG_AHRS:
         CHECK_PAYLOAD_SIZE(AHRS);
@@ -632,6 +632,9 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         break;
 
     case MSG_RETRY_DEFERRED:
+        break; // just here to prevent a warning
+
+    case MSG_BATTERY2:
         break; // just here to prevent a warning
     }
 
@@ -734,7 +737,7 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
 
     // send at a much lower rate while handling waypoints and
     // parameter sends
-    if ((stream_num != STREAM_PARAMS) && 
+    if ((stream_num != STREAM_PARAMS) &&
         (waypoint_receiving || _queued_parameter != NULL)) {
         rate *= 0.25;
     }
@@ -1146,14 +1149,14 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (packet.param1 == 1.0f) {
                 // run pre_arm_checks and arm_checks and display failures
                 pre_arm_checks(true);
-                if(ap.pre_arm_check && arm_checks(true)) {
+                if(ap.pre_arm_check && arm_checks(true, true)) {
                     init_arm_motors();
                     result = MAV_RESULT_ACCEPTED;
                 }else{
                     AP_Notify::flags.arming_failed = true;  // init_arm_motors function will reset flag back to false
                     result = MAV_RESULT_UNSUPPORTED;
                 }
-            } else if (packet.param1 == 0.0f)  {
+            } else if (packet.param1 == 0.0f && (manual_flight_mode(control_mode) || ap.land_complete))  {
                 init_disarm_motors();
                 result = MAV_RESULT_ACCEPTED;
             } else {
@@ -1283,6 +1286,50 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         break;
     }
 
+    case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:     // MAV ID: 84
+    {
+        // decode packet
+        mavlink_set_position_target_local_ned_t packet;
+        mavlink_msg_set_position_target_local_ned_decode(msg, &packet);
+
+        // exit immediately if this command is not meant for this vehicle
+        if (mavlink_check_target(packet.target_system, packet.target_component)) {
+            break;
+        }
+
+        // exit if vehicle is not in Guided mode or Auto-Guided mode
+        if ((control_mode != GUIDED) && !(control_mode == AUTO && auto_mode == Auto_NavGuided)) {
+            break;
+        }
+
+        // create 3-axis velocity vector and sent to guided controller
+        guided_set_velocity(Vector3f(packet.vx * 100.0f, packet.vy * 100.0f, -packet.vz * 100.0f));
+
+        break;
+    }
+
+    case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:    // MAV ID: 86
+    {
+        // decode packet
+        mavlink_set_position_target_global_int_t packet;
+        mavlink_msg_set_position_target_global_int_decode(msg, &packet);
+
+        // exit immediately if this command is not meant for this vehicle
+        if (mavlink_check_target(packet.target_system, packet.target_component)) {
+            break;
+        }
+
+        // exit if vehicle is not in Guided mode or Auto-Guided mode
+        if ((control_mode != GUIDED) && !(control_mode == AUTO && auto_mode == Auto_NavGuided)) {
+            break;
+        }
+
+        // create 3-axis velocity vector and sent to guided controller
+        guided_set_velocity(Vector3f(packet.vx * 100.0f, packet.vy * 100.0f, -packet.vz * 100.0f));
+
+        break;
+    }
+
 #if HIL_MODE != HIL_MODE_DISABLED
     case MAVLINK_MSG_ID_HIL_STATE:          // MAV ID: 90
     {
@@ -1332,11 +1379,21 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_RADIO:
     case MAVLINK_MSG_ID_RADIO_STATUS:       // MAV ID: 109
     {
-        handle_radio_status(msg, DataFlash, (g.log_bitmask & MASK_LOG_PM) != 0);
+        handle_radio_status(msg, DataFlash, should_log(MASK_LOG_PM));
         break;
     }
 
-    case MAVLINK_MSG_ID_LOG_REQUEST_LIST ... MAVLINK_MSG_ID_LOG_REQUEST_END:    // MAV ID: 117 ... 122
+    case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
+    case MAVLINK_MSG_ID_LOG_ERASE:
+        in_log_download = true;
+        // fallthru
+    case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
+        if (!in_mavlink_delay && !motors.armed()) {
+            handle_log_message(msg, DataFlash);
+        }
+        break;
+    case MAVLINK_MSG_ID_LOG_REQUEST_END:
+        in_log_download = false;
         if (!in_mavlink_delay && !motors.armed()) {
             handle_log_message(msg, DataFlash);
         }
@@ -1386,8 +1443,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         mavlink_msg_rally_point_decode(msg, &packet);
         if (mavlink_check_target(packet.target_system, packet.target_component))
             break;
-        
-        if (packet.idx >= rally.get_rally_total() || 
+
+        if (packet.idx >= rally.get_rally_total() ||
             packet.idx >= rally.get_rally_max()) {
             send_text_P(SEVERITY_LOW,PSTR("bad rally point message ID"));
             break;
@@ -1425,7 +1482,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         //send_text_P(SEVERITY_HIGH, PSTR("## getting rally point in GCS_Mavlink.pde 2")); // #### TEMP
 
         if (packet.idx > rally.get_rally_total()) {
-            send_text_P(SEVERITY_LOW, PSTR("bad rally point index"));   
+            send_text_P(SEVERITY_LOW, PSTR("bad rally point index"));
             break;
         }
 
@@ -1433,22 +1490,22 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         RallyLocation rally_point;
         if (!rally.get_rally_point_with_index(packet.idx, rally_point)) {
-           send_text_P(SEVERITY_LOW, PSTR("failed to set rally point"));   
+           send_text_P(SEVERITY_LOW, PSTR("failed to set rally point"));
            break;
         }
 
         //send_text_P(SEVERITY_HIGH, PSTR("## getting rally point in GCS_Mavlink.pde 4")); // #### TEMP
 
         mavlink_msg_rally_point_send_buf(msg,
-                                         chan, msg->sysid, msg->compid, packet.idx, 
-                                         rally.get_rally_total(), rally_point.lat, rally_point.lng, 
-                                         rally_point.alt, rally_point.break_alt, rally_point.land_dir, 
+                                         chan, msg->sysid, msg->compid, packet.idx,
+                                         rally.get_rally_total(), rally_point.lat, rally_point.lng,
+                                         rally_point.alt, rally_point.break_alt, rally_point.land_dir,
                                          rally_point.flags);
 
         //send_text_P(SEVERITY_HIGH, PSTR("## getting rally point in GCS_Mavlink.pde 5")); // #### TEMP
 
         break;
-    }  
+    }
 #endif // AC_RALLY == ENABLED
 
 

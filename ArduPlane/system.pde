@@ -150,7 +150,7 @@ static void init_ardupilot()
     // more than 5ms remaining in your call to hal.scheduler->delay
     hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
 
-#if CONFIG_INS_TYPE == CONFIG_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
     apm1_adc.Init();      // APM ADC library initialization
 #endif
 
@@ -296,6 +296,12 @@ static void set_mode(enum FlightMode mode)
 
     // don't cross-track when starting a mission
     auto_state.next_wp_no_crosstrack = true;
+
+    // reset landing check
+    auto_state.checked_for_autoland = false;
+
+    // reset go around command
+    auto_state.commanded_go_around = false;
 
     // zero locked course
     steer_state.locked_course_err = 0;
@@ -496,6 +502,9 @@ static void startup_INS_ground(bool do_accel_init)
         gcs_send_text_P(SEVERITY_LOW, PSTR("Waiting for first HIL_STATE message"));
         delay(1000);
     }
+    
+    // set INS to HIL mode
+    ins.set_hil_mode();
 #endif
 
     AP_InertialSensor::Start_style style;
@@ -542,9 +551,11 @@ static void update_notify()
     notify.update();
 }
 
-static void resetPerfData(void) {
+static void resetPerfData(void) 
+{
     mainLoop_count                  = 0;
     G_Dt_max                        = 0;
+    G_Dt_min                        = 0;
     perf_mon_timer                  = millis();
 }
 

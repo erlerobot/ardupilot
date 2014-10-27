@@ -39,6 +39,9 @@ start_command(const AP_Mission::Mission_Command& cmd)
         // set takeoff_complete to true so we don't add extra evevator
         // except in a takeoff
         auto_state.takeoff_complete = true;
+
+        // if a go around had been commanded, clear it now.
+        auto_state.commanded_go_around = false;
         
         gcs_send_text_fmt(PSTR("Executing nav command ID #%i"),cmd.id);
     } else {
@@ -122,6 +125,11 @@ start_command(const AP_Mission::Mission_Command& cmd)
             auto_state.inverted_flight = (bool)cmd.p1;
             gcs_send_text_fmt(PSTR("Set inverted %u"), cmd.p1);
         }
+        break;
+
+    case MAV_CMD_DO_LAND_START:
+        //ensure go around hasn't been set
+        auto_state.commanded_go_around = false;
         break;
 
 #if CAMERA == ENABLED
@@ -233,6 +241,7 @@ static bool verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     case MAV_CMD_DO_MOUNT_CONFIGURE:
     case MAV_CMD_DO_MOUNT_CONTROL:
     case MAV_CMD_DO_INVERTED_FLIGHT:
+    case MAV_CMD_DO_LAND_START:
         return true;
 
     default:
@@ -298,6 +307,7 @@ static void do_nav_wp(const AP_Mission::Mission_Command& cmd)
 
 static void do_land(const AP_Mission::Mission_Command& cmd)
 {
+    auto_state.commanded_go_around = false;
     set_next_WP(cmd.content.location);
 }
 

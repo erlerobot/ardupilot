@@ -12,37 +12,12 @@ static uint8_t auto_disarming_counter;
 static void arm_motors_check()
 {
     static int16_t arming_counter;
-    bool allow_arming = false;
 
     // ensure throttle is down
     if (g.rc_3.control_in > 0) {
         arming_counter = 0;
         return;
     }
-
-    // allow arming/disarming in fully manual flight modes ACRO, STABILIZE, SPORT and DRIFT
-    if (manual_flight_mode(control_mode)) {
-        allow_arming = true;
-    }
-
-    // allow arming/disarming in Loiter and AltHold if landed
-    if (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD || control_mode == POSHOLD || control_mode == AUTOTUNE)) {
-        allow_arming = true;
-    }
-
-    // kick out other flight modes
-    if (!allow_arming) {
-        arming_counter = 0;
-        return;
-    }
-
-    #if FRAME_CONFIG == HELI_FRAME
-    // heli specific arming check
-    if (!motors.allow_arming()){
-        arming_counter = 0;
-        return;
-    }
-    #endif  // HELI_FRAME
 
     int16_t tmp = g.rc_4.control_in;
 
@@ -58,7 +33,7 @@ static void arm_motors_check()
         if (arming_counter == ARM_DELAY && !motors.armed()) {
             // run pre-arm-checks and display failures
             pre_arm_checks(true);
-            if(ap.pre_arm_check && arm_checks(true)) {
+            if(ap.pre_arm_check && arm_checks(true,false)) {
                 init_arm_motors();
             }else{
                 // reset arming counter if pre-arm checks fail
@@ -76,6 +51,10 @@ static void arm_motors_check()
 
     // full left
     }else if (tmp < -4000) {
+        if (!manual_flight_mode(control_mode) && !ap.land_complete) {
+            arming_counter = 0;
+            return;
+        }
 
         // increase the counter to a maximum of 1 beyond the disarm delay
         if( arming_counter <= DISARM_DELAY ) {
@@ -99,15 +78,13 @@ static void arm_motors_check()
 static void auto_disarm_check()
 {
     // exit immediately if we are already disarmed or throttle is not zero
-    if (!motors.armed() || g.rc_3.control_in > 0) {
+    if (!motors.armed() || !ap.throttle_zero) {
         auto_disarming_counter = 0;
         return;
     }
 
     // allow auto disarm in manual flight modes or Loiter/AltHold if we're landed
-    if (manual_flight_mode(control_mode) || (ap.land_complete && (control_mode == ALT_HOLD || control_mode == LOITER || control_mode == OF_LOITER ||
-                                                                  control_mode == DRIFT || control_mode == SPORT || control_mode == AUTOTUNE ||
-                                                                  control_mode == POSHOLD))) {
+    if (manual_flight_mode(control_mode) || ap.land_complete) {
         auto_disarming_counter++;
 
         if(auto_disarming_counter >= AUTO_DISARMING_DELAY) {
@@ -143,11 +120,6 @@ static void init_arm_motors()
     for (uint8_t i=0; i<=10; i++) {
         update_notify();
     }
-
-#if LOGGING_ENABLED == ENABLED
-    // start dataflash
-    start_logging();
-#endif
 
 #if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
@@ -431,7 +403,7 @@ static void pre_arm_checks(bool display_failure)
         }
 
         // lean angle parameter check
-    if (aparm.angle_max < 1000 || aparm.angle_max > 8000) {
+        if (aparm.angle_max < 1000 || aparm.angle_max > 8000) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Check ANGLE_MAX"));
             }
@@ -526,9 +498,34 @@ static bool pre_arm_gps_checks(bool display_failure)
 }
 
 // arm_checks - perform final checks before arming
-// always called just before arming.  Return true if ok to arm
-static bool arm_checks(bool display_failure)
+//  always called just before arming.  Return true if ok to arm
+//  has side-effect that logging is started
+static bool arm_checks(bool display_failure, bool arming_from_gcs)
 {
+#if LOGGING_ENABLED == ENABLED
+    // start dataflash
+    start_logging();
+#endif
+
+    // always check if the current mode allows arming
+    if (!mode_allows_arming(control_mode, arming_from_gcs)) {
+        if (display_failure) {
+            gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Mode not armable"));
+        }
+        return false;
+    }
+
+    // always check if rotor is spinning on heli
+    #if FRAME_CONFIG == HELI_FRAME
+    // heli specific arming check
+    if (!motors.allow_arming()){
+        if (display_failure) {
+            gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Rotor not spinning"));
+        }
+        return false;
+    }
+    #endif  // HELI_FRAME
+
     // succeed if arming checks are disabled
     if (g.arming_check == ARMING_CHECK_NONE) {
         return true;
