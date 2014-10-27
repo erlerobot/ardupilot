@@ -12,7 +12,7 @@
 #define RCIN_PRUSS_SHAREDRAM_BASE   0x4a312000
 // we use 300 ring buffer entries to guarantee that a full 25 byte
 // frame of 12 bits per byte
-#define NUM_RING_ENTRIES            300
+#define NUM_RING_ENTRIES            200
 
 class Linux::LinuxRCInput_PRU : public Linux::LinuxRCInput 
 {
