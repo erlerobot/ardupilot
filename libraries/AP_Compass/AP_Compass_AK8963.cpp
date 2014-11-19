@@ -250,7 +250,7 @@ uint8_t AP_Compass_AK8963_MPU9250::_read_id()
     return 1;
 }
 
-bool AP_Compass_AK8963_MPU9250::_read_raw()
+bool AP_Compass_AK8963_MPU9250::read_raw()
 {
     uint8_t rx[14] = {0};
 
@@ -304,7 +304,7 @@ bool AP_Compass_AK8963::_self_test()
 
     hal.scheduler->delay(10);
     _start_conversion();
-    _read_raw();
+    read_raw();
 
     float hx = _mag_x;
     float hy = _mag_y;
@@ -524,8 +524,8 @@ void AP_Compass_AK8963::_collect_samples()
         return;
     }
 
-    if (!_read_raw()) {
-        error("_read_raw failed\n");
+    if (!read_raw()) {
+        error("read_raw failed\n");
     } else {
         _mag_x_accum += _mag_x;
         _mag_y_accum += _mag_y;
