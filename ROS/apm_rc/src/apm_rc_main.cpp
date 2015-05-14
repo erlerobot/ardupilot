@@ -43,10 +43,13 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(1);
   while (ros::ok()){
-    for (int i=0; i<NUM_CHANNELS; i++) {
-        int value = rc[i].control_in;
-	std::cout << value << std::endl;
-	}
+	RC_Channel::set_pwm_all();
+	
+	for (int i=0; i<NUM_CHANNELS; i++) {
+        	int value = rc[i].control_in;
+		std::cout <<"RC "<<i<<" channel value is"<< value << std::endl;
+		}
+	
 	ros::spinOnce();
 	loop_rate.sleep();
   }  
