@@ -39,7 +39,8 @@ include_directories(include ${catkin_INCLUDE_DIRS}
         ../../libraries/AP_GPS
         ../../libraries/StorageManager
         ../../libraries/Filter
-        ../../libraries/AP_ADC)
+        ../../libraries/AP_ADC
+	../../libraries/RC_Channel )
 
 #SET(CMAKE_CXX_FLAGS "fpermissive")
 add_definitions ( -fpermissive)
@@ -83,7 +84,8 @@ add_executable(apm_rc_main src/apm_rc_main.cpp
         ../../libraries/AP_Math/vector3.cpp
         ../../libraries/StorageManager/StorageManager.cpp
         ../../libraries/Filter/LowPassFilter2p.cpp
-        ../../libraries/Filter/DerivativeFilter.cpp)
+        ../../libraries/Filter/DerivativeFilter.cpp
+	../../libraries/RC_Channel/RC_Channel.cpp)
 
 target_link_libraries(apm_rc_main ${catkin_LIBRARIES})
 add_dependencies(apm_rc_main apm_rc_generate_messages_cpp)
