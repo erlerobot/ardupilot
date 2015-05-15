@@ -1,7 +1,4 @@
-/*
- *       Example of RC_Channel library.
- *       Based on original sketch by Jason Short. 2010
- */
+
 #define CH_1 0
 #define CH_2 1
 #define CH_3 2
@@ -19,35 +16,20 @@
 #include <StorageManager.h>
 #include <AP_Math.h>
 #include <RC_Channel.h>
-//#include <AP_HAL_AVR.h>
-//#include <AP_HAL_AVR_SITL.h>
-//#include <AP_HAL_PX4.h>
-//#include "../../../AP_HAL_Linux/AP_HAL_Linux.h"
 #include <AP_HAL_Linux.h> 
 #include <AP_HAL_Empty.h>
 #include <AP_Baro.h>
 #include <AP_ADC.h>
 #include <AP_GPS.h>
-//#include <AP_InertialSensor.h>
 #include "../../libraries/AP_InertialSensor/AP_InertialSensor.h"
 #include <AP_Notify.h>
-//#include <DataFlash.h>
 #include <GCS_MAVLink.h>
-//#include <AP_Mission.h>
 #include <StorageManager.h>
-//#include <AP_Terrain.h>
-//#include <AP_Compass.h>
-//#include <AP_Declination.h>
-//#include <SITL.h>
 #include <Filter.h>
-//#include <AP_AHRS.h>
-//#include <AP_Airspeed.h>
-//#include <AP_Vehicle.h>
-//#include <AP_ADC_AnalogSource.h>
-//#include <AP_NavEKF.h>
-//#include <AP_Rally.h>
 #include "../../libraries/AP_Scheduler/AP_Scheduler.h"
 #include "../../libraries/AP_HAL_Linux/UARTDriver.h"
+
+#include "ros/ros.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -89,7 +71,6 @@ void setup()
     rc_1.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
     rc_2.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
     rc_4.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
-
     //set auxiliary servo ranges
     rc_5.set_range(0,1000);
     rc_6.set_range(0,1000);
@@ -100,11 +81,14 @@ void setup()
 
 void loop()
 {
-    while(1){
-    RC_Channel::set_pwm_all();
-    print_pwm();
+    //while(1){
+    while(ros::ok()){
+     RC_Channel::set_pwm_all();
+     print_pwm();
 
-    hal.scheduler->delay(20);
+     hal.scheduler->delay(20);
+     ros::spinOnce();
+     //loop_rate.sleep();
     }
 }
 
@@ -112,24 +96,48 @@ void loop()
 static void print_pwm(void)
 {
     for (int i=0; i<NUM_CHANNELS; i++) {
-	    hal.console->printf("ch%u: %4d ", (unsigned)i+1, (int)rc[i].control_in);
-        //std::cout << "ch" << (unsigned)i+1 << (int)rc[i].control_in;    
+	   // hal.console->printf("ch%u: %4d ", (unsigned)i+1, (int)rc[i].control_in);
+	std::cout << "ch" << (unsigned)i+1<<" " << (int)rc[i].control_in << " ";    
     }
-    hal.console->printf("\n");
-    //std::cout << std::endl;
+    //hal.console->printf("\n");
+    std::cout << std::endl;
 }
 
 
 static void print_radio_values()
 {
     for (int i=0; i<NUM_CHANNELS; i++) {
-	     hal.console->printf("CH%u: %u|%u\n",
-			  (unsigned)i+1, 
-			  (unsigned)rc[i].radio_min, 
-			  (unsigned)rc[i].radio_max); 
-        //std::cout << "CH" << (unsigned)i+1 << ": "<< (unsigned)rc[i].radio_min << "|" << (unsigned)rc[i].radio_max<< std::endl;
+	    // hal.console->printf("CH%u: %u|%u\n",
+		//	  (unsigned)i+1, 
+		//	  (unsigned)rc[i].radio_min, 
+		//	  (unsigned)rc[i].radio_max); 
+        std::cout << "CH" << (unsigned)i+1 << ": "<< (unsigned)rc[i].radio_min << "|" << (unsigned)rc[i].radio_max<< std::endl;
     }
 }
 
 
-AP_HAL_MAIN();
+int main(int argc, char **argv)
+{
+ /*  --ROS Init --  */
+    ros::init(argc, argv, "apm_rc");
+
+    std::string topic_name = std::string("apm_rc");
+    std::cout << topic_name << std::endl;
+
+    ros::NodeHandle n;
+    //ros::Publisher baro_pub = n.advertise<apm_baro::apm_baro>(topic_name, 1000);
+    //apm_rc::apm_rc msg;
+
+    ros::Rate loop_rate(1);
+
+
+    AP_HAL_MAIN();
+
+    return 0;
+}
+/*int main()
+{
+	setup();
+	loop();
+	return 0;
+}*/
