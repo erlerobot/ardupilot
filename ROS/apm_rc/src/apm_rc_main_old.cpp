@@ -80,8 +80,10 @@ int main(int argc, char **argv)
 	for (int i=0; i<NUM_CHANNELS; i++) {
 		
 		int16_t value = rc[i].control_in;
-		std::cout <<"RC "<<i<<" channel value is: "<< (int)value << std::endl;
+		//std::cout <<"RC "<<i<<" channel value is: "<< (int)value << std::endl;
+		printf("ch%u: %4d ", (unsigned)i+1, (int)rc[i].control_in);
 		}
+	printf("\n");
 	
 	ros::spinOnce();
 	loop_rate.sleep();
