@@ -77,29 +77,36 @@ void setup()
     rc_7.set_range(0,1000);
     rc_8.set_range(0,1000);
 
+//    ros::init(argc, argv, "apm_rc");
+    char *argv[] = {"",NULL};
+    int argc = sizeof(argv) / sizeof(char*) - 1;
+    ros::init(argc,argv,"apm_rc");
+
+    std::string topic_name = std::string("apm_rc");
+    std::cout << topic_name << std::endl;
+
+    ros::NodeHandle n;
+    ros::Rate loop_rate(1);
 }
 
 void loop()
 {
-    //while(1){
-    while(ros::ok()){
+
+   // while(ros::ok()){
      RC_Channel::set_pwm_all();
      print_pwm();
 
-     hal.scheduler->delay(20);
      ros::spinOnce();
-     //loop_rate.sleep();
-    }
+     ros::Rate loop_rate(10);
+     loop_rate.sleep();
 }
 
 
 static void print_pwm(void)
 {
     for (int i=0; i<NUM_CHANNELS; i++) {
-	   // hal.console->printf("ch%u: %4d ", (unsigned)i+1, (int)rc[i].control_in);
 	std::cout << "ch" << (unsigned)i+1<<" " << (int)rc[i].control_in << " ";    
     }
-    //hal.console->printf("\n");
     std::cout << std::endl;
 }
 
@@ -107,18 +114,14 @@ static void print_pwm(void)
 static void print_radio_values()
 {
     for (int i=0; i<NUM_CHANNELS; i++) {
-	    // hal.console->printf("CH%u: %u|%u\n",
-		//	  (unsigned)i+1, 
-		//	  (unsigned)rc[i].radio_min, 
-		//	  (unsigned)rc[i].radio_max); 
         std::cout << "CH" << (unsigned)i+1 << ": "<< (unsigned)rc[i].radio_min << "|" << (unsigned)rc[i].radio_max<< std::endl;
     }
 }
 
 
-int main(int argc, char **argv)
+/*int main(int argc, char **argv)
 {
- /*  --ROS Init --  */
+ //  --ROS Init --  
     ros::init(argc, argv, "apm_rc");
 
     std::string topic_name = std::string("apm_rc");
@@ -131,13 +134,12 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(1);
 
 
-    AP_HAL_MAIN();
+//    AP_HAL_MAIN();
+
+    ros::spinOnce();
+    loop_rate.sleep();
 
     return 0;
-}
-/*int main()
-{
-	setup();
-	loop();
-	return 0;
 }*/
+
+AP_HAL_MAIN();
