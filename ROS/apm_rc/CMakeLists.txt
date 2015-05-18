@@ -5,8 +5,7 @@ project(apm_rc)
 find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg)
 
 ## Declare ROS messages and services
-##add_message_files(DIRECTORY msg FILES apm_baro.msg)
-add_message_files(DIRECTORY msg FILES)
+add_message_files(DIRECTORY msg FILES apm_rc.msg)
 
  # Hardware Abstraction Layer APM ROS definitions
  #		TODO: create another package that abstracts
