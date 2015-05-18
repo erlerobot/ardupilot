@@ -30,6 +30,7 @@
 #include "../../libraries/AP_HAL_Linux/UARTDriver.h"
 
 #include "ros/ros.h"
+#include "apm_rc/apm_rc.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -55,11 +56,11 @@ static RC_Channel *rc = &rc_1;
 
 static void print_radio_values();
 static void print_pwm(void);
+//static void print_pwm_msg(void);
 
 void setup()
 {
-    hal.console->println("ArduPilot RC Channel test");
-    //std::cout << "ArduPilot RC Channel test" << std::endl;
+    std::cout << "ArduPilot RC Channel test" << std::endl;
     print_radio_values();
 
     // set type of output
@@ -77,37 +78,41 @@ void setup()
     rc_7.set_range(0,1000);
     rc_8.set_range(0,1000);
 
-//    ros::init(argc, argv, "apm_rc");
+//  INITIALIZE ROS
     char *argv[] = {"",NULL};
     int argc = sizeof(argv) / sizeof(char*) - 1;
     ros::init(argc,argv,"apm_rc");
 
-    std::string topic_name = std::string("apm_rc");
-    std::cout << topic_name << std::endl;
+//    std::string topic_name = std::string("apm_rc");
+//    std::cout << topic_name << std::endl;
 
-    ros::NodeHandle n;
-    ros::Rate loop_rate(1);
+//    ros::NodeHandle n;
+//    ros::Publisher rc_pub = n.advertise<apm_rc::apm_rc>(topic_name, 1000);
 }
 
 void loop()
 {
 
    // while(ros::ok()){
-     RC_Channel::set_pwm_all();
-     print_pwm();
+    RC_Channel::set_pwm_all();
+
+//Any way to do this just once??
+    std::string topic_name = std::string("apm_rc");
+    apm_rc::apm_rc msg;
+    ros::NodeHandle n;
+    ros::Publisher rc_pub = n.advertise<apm_rc::apm_rc>(topic_name, 1000);
+//----------------------//
+    for (int i=0; i<NUM_CHANNELS; i++) {
+        msg.ch[i]=rc[i].control_in;
+        std::cout << "ch" << (unsigned)i+1<<" " <<(int) msg.ch[i] << " ";
+     }
+     std::cout << std::endl;
+
+     rc_pub.publish(msg);
 
      ros::spinOnce();
      ros::Rate loop_rate(10);
      loop_rate.sleep();
-}
-
-
-static void print_pwm(void)
-{
-    for (int i=0; i<NUM_CHANNELS; i++) {
-	std::cout << "ch" << (unsigned)i+1<<" " << (int)rc[i].control_in << " ";    
-    }
-    std::cout << std::endl;
 }
 
 
@@ -117,29 +122,5 @@ static void print_radio_values()
         std::cout << "CH" << (unsigned)i+1 << ": "<< (unsigned)rc[i].radio_min << "|" << (unsigned)rc[i].radio_max<< std::endl;
     }
 }
-
-
-/*int main(int argc, char **argv)
-{
- //  --ROS Init --  
-    ros::init(argc, argv, "apm_rc");
-
-    std::string topic_name = std::string("apm_rc");
-    std::cout << topic_name << std::endl;
-
-    ros::NodeHandle n;
-    //ros::Publisher baro_pub = n.advertise<apm_baro::apm_baro>(topic_name, 1000);
-    //apm_rc::apm_rc msg;
-
-    ros::Rate loop_rate(1);
-
-
-//    AP_HAL_MAIN();
-
-    ros::spinOnce();
-    loop_rate.sleep();
-
-    return 0;
-}*/
 
 AP_HAL_MAIN();
