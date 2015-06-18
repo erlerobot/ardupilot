@@ -14,7 +14,7 @@ apm_inertial_sensor::apm_imu msg;
 ros::Publisher imu_pub;
 
 void callback(const ros::TimerEvent&){
-    ins.wait_for_sample();
+    //ins.wait_for_sample();
     // Update IMU values
     ins.update();
     // gyro = ins.get_gyro();
