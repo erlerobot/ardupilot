@@ -33,7 +33,6 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "apm_inertial_sensor");
 
   std::string topic_name = std::string("apm_inertial_sensor");
-  //std::cout << topic_name << std::endl;
 
   ros::NodeHandle n;
   imu_pub = n.advertise<apm_inertial_sensor::apm_imu>(topic_name, 1000);
@@ -44,9 +43,10 @@ int main(int argc, char **argv)
 
   // init the IMU
   ins.init(AP_InertialSensor::WARM_START, AP_InertialSensor::RATE_100HZ);
-
+  // Read sensors data 100 times in a second
 
   ros::Timer timer = n.createTimer(ros::Duration(0.1), callback);
+  // Execute callback function every 0.1 seconds, change Duration(x) to adapt it for your purpose
 
   ros::spin();
 
