@@ -225,6 +225,13 @@ void AP_Compass_AK8963::read()
     _mag_x_accum = _mag_y_accum = _mag_z_accum = 0;
     _accum_count = 0;
 
+<<<<<<< HEAD
+=======
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
+    field.rotate(ROTATION_YAW_90);
+#endif
+
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
     publish_field(field, _compass_instance);
 }
 
@@ -238,6 +245,7 @@ void AP_Compass_AK8963::_update()
         return;
     }
 
+<<<<<<< HEAD
     switch (_state)
     {
         case STATE_SAMPLE:
@@ -252,6 +260,21 @@ void AP_Compass_AK8963::_update()
             break;
         default:
             break;
+=======
+    switch (_state) {
+    case STATE_SAMPLE:
+        if (!_collect_samples()) {
+            _state = STATE_ERROR;
+        }
+        break;
+    case STATE_ERROR:
+        if (_bus->start_conversion()) {
+            _state = STATE_SAMPLE;
+        }
+        break;
+    default:
+        break;
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
     }
 
     _last_update_timestamp = hal.scheduler->micros();
@@ -261,8 +284,13 @@ void AP_Compass_AK8963::_update()
 bool AP_Compass_AK8963::_check_id()
 {
     for (int i = 0; i < 5; i++) {
+<<<<<<< HEAD
         uint8_t deviceid;
         _register_read(AK8963_WIA, &deviceid, 0x01); /* Read AK8963's id */
+=======
+        uint8_t deviceid = 0;
+        _bus->register_read(AK8963_WIA, &deviceid, 0x01); /* Read AK8963's id */
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
 
         if (deviceid == AK8963_Device_ID) {
             return true;
@@ -302,7 +330,12 @@ bool AP_Compass_AK8963::_calibrate()
 {
     uint8_t cntl1 = _register_read(AK8963_CNTL1);
 
+<<<<<<< HEAD
     _register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution); /* Enable FUSE-mode in order to be able to read calibreation data */
+=======
+    /* Enable FUSE-mode in order to be able to read calibration data */
+    _bus->register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution);
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
 
     uint8_t response[3];
     _register_read(AK8963_ASAX, response, 3);
@@ -340,17 +373,17 @@ bool AP_Compass_AK8963::_collect_samples()
 
     if (!_read_raw()) {
         return false;
-    } else {
-        _mag_x_accum += _mag_x;
-        _mag_y_accum += _mag_y;
-        _mag_z_accum += _mag_z;
-        _accum_count++;
-        if (_accum_count == 10) {
-             _mag_x_accum /= 2;
-             _mag_y_accum /= 2;
-             _mag_z_accum /= 2;
-             _accum_count = 5;
-        }
+    }
+
+    _mag_x_accum += _mag_x;
+    _mag_y_accum += _mag_y;
+    _mag_z_accum += _mag_z;
+    _accum_count++;
+    if (_accum_count == 10) {
+        _mag_x_accum /= 2;
+        _mag_y_accum /= 2;
+        _mag_z_accum /= 2;
+        _accum_count = 5;
     }
 
     return true;
@@ -370,6 +403,7 @@ bool AP_Compass_AK8963::_sem_take_nonblocking()
 {
     static int _sem_failure_count = 0;
 
+<<<<<<< HEAD
     bool got = _spi_sem->take_nonblocking();
 
     if (!got) {
@@ -380,12 +414,23 @@ bool AP_Compass_AK8963::_sem_take_nonblocking()
                                           "100 times in a row, in "
                                           "AP_Compass_AK8963::_update"));
             }
-        }
-        return false; /* never reached */
-    } else {
+=======
+    if (_bus_sem->take_nonblocking()) {
         _sem_failure_count = 0;
+        return true;
     }
-    return got;
+
+    if (!hal.scheduler->system_initializing() ) {
+        _sem_failure_count++;
+        if (_sem_failure_count > 100) {
+            hal.scheduler->panic(PSTR("PANIC: failed to take _bus->sem "
+                                      "100 times in a row, in "
+                                      "AP_Compass_AK8963"));
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+        }
+    }
+
+    return false;
 }
 
 void AP_Compass_AK8963::_dump_registers()
@@ -418,6 +463,7 @@ bool AP_Compass_AK8963::_read_raw()
 
 #define int16_val(v, idx) ((int16_t)(((uint16_t)v[2*idx + 1] << 8) | v[2*idx]))
 
+<<<<<<< HEAD
     if(!(st2 & 0x08)) {
         _mag_x = (float) int16_val(rx, 1);
         _mag_y = (float) int16_val(rx, 2);
@@ -426,11 +472,44 @@ bool AP_Compass_AK8963::_read_raw()
         if (is_zero(_mag_x) && is_zero(_mag_y) && is_zero(_mag_z)) {
             return false;
         }
-
-        return true;
-    } else {
+=======
+    if (st2 & 0x08) {
         return false;
     }
+
+    mag_x = (float) int16_val(rx, 1);
+    mag_y = (float) int16_val(rx, 2);
+    mag_z = (float) int16_val(rx, 3);
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+
+    if (is_zero(mag_x) && is_zero(mag_y) && is_zero(mag_z)) {
+        return false;
+    }
+<<<<<<< HEAD
+=======
+
+    return true;
+}
+
+AP_HAL::Semaphore * AP_AK8963_SerialBus_MPU9250::get_semaphore()
+{
+    return _spi->get_semaphore();
+}
+
+bool AP_AK8963_SerialBus_MPU9250::start_conversion()
+{
+    static const uint8_t address = AK8963_INFO;
+    /* Read registers from INFO through ST2 */
+    static const uint8_t count = 0x09;
+
+    configure();
+    _write(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG);  /* Set the I2C slave addres of AK8963 and set for read. */
+    _write(MPUREG_I2C_SLV0_REG, address); /* I2C slave 0 register address from where to begin data transfer */
+    _write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | count); /* Enable I2C and set @count byte */
+
+    return true;
+}
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
 
 }
 void AP_Compass_AK8963::_register_write(uint8_t address, uint8_t value)
@@ -453,6 +532,7 @@ void AP_Compass_AK8963::_register_read(uint8_t address, uint8_t *value, uint8_t 
 
 void AP_Compass_AK8963::_bus_read(uint8_t address, uint8_t *buf, uint32_t count)
 {
+<<<<<<< HEAD
     ASSERT(count < 150);
     uint8_t tx[150];
     uint8_t rx[150];
@@ -462,6 +542,30 @@ void AP_Compass_AK8963::_bus_read(uint8_t address, uint8_t *buf, uint32_t count)
     _spi->transaction(tx, rx, count + 1);
 
     memcpy(buf, rx + 1, count);
+=======
+    uint8_t rx[9] = {0};
+
+    const uint8_t count = 9;
+    _i2c->readRegisters(_addr, AK8963_INFO, count, rx);
+
+    uint8_t st2 = rx[8]; /* End data read by reading ST2 register */
+
+#define int16_val(v, idx) ((int16_t)(((uint16_t)v[2*idx + 1] << 8) | v[2*idx]))
+
+    if (st2 & 0x08) {
+        return false;
+    }
+
+    mag_x = (float) int16_val(rx, 1);
+    mag_y = (float) int16_val(rx, 2);
+    mag_z = (float) int16_val(rx, 3);
+
+    if (is_zero(mag_x) && is_zero(mag_y) && is_zero(mag_z)) {
+        return false;
+    }
+
+    return true;
+>>>>>>> d941174... AP_Compass: AK8963: enhance the readability
 }
 
 void AP_Compass_AK8963::_bus_write(uint8_t address, const uint8_t *buf, uint32_t count)
