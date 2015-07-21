@@ -9,6 +9,33 @@
 #include "Compass.h"
 #include "AP_Compass_Backend.h"
 
+<<<<<<< HEAD
+=======
+class AP_AK8963_SerialBus
+{
+public:
+    struct PACKED raw_value {
+        uint8_t info;
+        uint8_t st1;
+        int16_t val[3];
+        uint8_t st2;
+    };
+
+    virtual void register_read(uint8_t address, uint8_t *value, uint8_t count) = 0;
+    uint8_t register_read(uint8_t address) {
+        uint8_t reg;
+        register_read(address, &reg, 1);
+        return reg;
+    }
+    virtual void register_write(uint8_t address, uint8_t value) = 0;
+    virtual AP_HAL::Semaphore* get_semaphore() = 0;
+    virtual bool start_conversion() = 0;
+    virtual bool configure() = 0;
+    virtual void read_raw(struct raw_value *rv) = 0;
+    virtual uint32_t get_dev_id() = 0;
+};
+
+>>>>>>> 86b3312... AP_Compass: AK8963: factor out common code of read_raw()
 class AP_Compass_AK8963 : public AP_Compass_Backend
 {
 public:
@@ -66,9 +93,6 @@ private:
     state_t             _state;
 
     float               _magnetometer_ASA[3] {0, 0, 0};
-    float               _mag_x;
-    float               _mag_y;
-    float               _mag_z;
     uint8_t             _compass_instance;
 
     float               _mag_x_accum;
@@ -85,4 +109,49 @@ private:
     AP_HAL::SPIDeviceDriver   *_spi;
 };
 
+<<<<<<< HEAD
+=======
+class AP_AK8963_SerialBus_MPU9250: public AP_AK8963_SerialBus
+{
+public:
+    AP_AK8963_SerialBus_MPU9250();
+    void register_read(uint8_t address, uint8_t *value, uint8_t count);
+    void register_write(uint8_t address, uint8_t value);
+    AP_HAL::Semaphore* get_semaphore();
+    bool start_conversion();
+    bool configure();
+    void read_raw(struct raw_value *rv);
+    uint32_t get_dev_id();
+private:
+    void _read(uint8_t address, uint8_t *value, uint32_t count);
+    void _write(uint8_t address, const uint8_t *value,  uint32_t count);
+    void _write(uint8_t address, const uint8_t value) {
+        _write(address, &value, 1);
+    }
+    AP_HAL::SPIDeviceDriver *_spi;
+    AP_HAL::Semaphore *_spi_sem;
+};
+
+class AP_AK8963_SerialBus_I2C: public AP_AK8963_SerialBus
+{
+public:
+    AP_AK8963_SerialBus_I2C(AP_HAL::I2CDriver *i2c, uint8_t addr);
+    void register_read(uint8_t address, uint8_t *value, uint8_t count);
+    void register_write(uint8_t address, uint8_t value);
+    AP_HAL::Semaphore* get_semaphore();
+    bool start_conversion(){return true;}
+    bool configure(){return true;}
+    void read_raw(struct raw_value *rv);
+    uint32_t get_dev_id();
+private:
+    void _read(uint8_t address, uint8_t *value, uint32_t count);
+    void _write(uint8_t address, const uint8_t *value,  uint32_t count);
+    void _write(uint8_t address, const uint8_t value) {
+        _write(address, &value, 1);
+    }
+    AP_HAL::I2CDriver *_i2c;
+    uint8_t _addr;
+    AP_HAL::Semaphore *_i2c_sem;
+};
+>>>>>>> 86b3312... AP_Compass: AK8963: factor out common code of read_raw()
 #endif

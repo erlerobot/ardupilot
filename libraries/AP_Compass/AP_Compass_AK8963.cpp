@@ -112,7 +112,6 @@ AP_Compass_AK8963::AP_Compass_AK8963(Compass &compass) :
     _last_accum_time(0)
 {
     _mag_x_accum =_mag_y_accum = _mag_z_accum = 0;
-    _mag_x =_mag_y = _mag_z = 0;
     _accum_count = 0;
     _magnetometer_adc_resolution = AK8963_16BIT_ADC;
 }
@@ -367,17 +366,32 @@ bool AP_Compass_AK8963::_start_conversion()
 
 bool AP_Compass_AK8963::_collect_samples()
 {
+    struct AP_AK8963_SerialBus::raw_value rv;
+
     if (!_initialized) {
         return false;
     }
 
+<<<<<<< HEAD
     if (!_read_raw()) {
+=======
+    _bus->read_raw(&rv);
+    if ((rv.st2 & 0x08)) {
+>>>>>>> 86b3312... AP_Compass: AK8963: factor out common code of read_raw()
         return false;
     }
 
-    _mag_x_accum += _mag_x;
-    _mag_y_accum += _mag_y;
-    _mag_z_accum += _mag_z;
+    float mag_x = (float) rv.val[0];
+    float mag_y = (float) rv.val[1];
+    float mag_z = (float) rv.val[2];
+
+    if (is_zero(mag_x) && is_zero(mag_y) && is_zero(mag_z)) {
+        return false;
+    }
+
+    _mag_x_accum += mag_x;
+    _mag_y_accum += mag_y;
+    _mag_z_accum += mag_z;
     _accum_count++;
     if (_accum_count == 10) {
         _mag_x_accum /= 2;
@@ -452,6 +466,7 @@ void AP_Compass_AK8963::_dump_registers()
 #endif
 }
 
+<<<<<<< HEAD
 bool AP_Compass_AK8963::_read_raw()
 {
     uint8_t rx[14] = {0};
@@ -489,6 +504,77 @@ bool AP_Compass_AK8963::_read_raw()
 =======
 
     return true;
+=======
+/* MPU9250 implementation of the AK8963 */
+AP_AK8963_SerialBus_MPU9250::AP_AK8963_SerialBus_MPU9250()
+{
+    _spi = hal.spi->device(AP_HAL::SPIDevice_MPU9250);
+
+    if (_spi == NULL) {
+        hal.console->println_P(PSTR("Cannot get SPIDevice_MPU9250"));
+        return;
+    }
+}
+
+void AP_AK8963_SerialBus_MPU9250::register_write(uint8_t address, uint8_t value)
+{
+    _write(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR);  /* Set the I2C slave addres of AK8963 and set for register_write. */
+    _write(MPUREG_I2C_SLV0_REG, address); /* I2C slave 0 register address from where to begin data transfer */
+    _write(MPUREG_I2C_SLV0_DO, value); /* Register value to continuous measurement in 16-bit */
+    _write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01); /* Enable I2C and set 1 byte */
+}
+
+void AP_AK8963_SerialBus_MPU9250::register_read(uint8_t address, uint8_t *value, uint8_t count)
+{
+    _write(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG);  /* Set the I2C slave addres of AK8963 and set for read. */
+    _write(MPUREG_I2C_SLV0_REG, address); /* I2C slave 0 register address from where to begin data transfer */
+    _write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | count); /* Enable I2C and set @count byte */
+
+    hal.scheduler->delay(10);
+    _read(MPUREG_EXT_SENS_DATA_00, value, count);
+}
+
+void AP_AK8963_SerialBus_MPU9250::_read(uint8_t address, uint8_t *buf, uint32_t count)
+{
+    ASSERT(count < 150);
+    uint8_t tx[150];
+    uint8_t rx[150];
+
+    tx[0] = address | READ_FLAG;
+    tx[1] = 0;
+    _spi->transaction(tx, rx, count + 1);
+
+    memcpy(buf, rx + 1, count);
+}
+
+void AP_AK8963_SerialBus_MPU9250::_write(uint8_t address, const uint8_t *buf, uint32_t count)
+{
+    ASSERT(count < 2);
+    uint8_t tx[2];
+
+    tx[0] = address;
+    memcpy(tx+1, buf, count);
+
+    _spi->transaction(tx, NULL, count + 1);
+}
+
+bool AP_AK8963_SerialBus_MPU9250::configure()
+{
+    if (!AP_InertialSensor_MPU9250::initialize_driver_state())
+        return false;
+
+    uint8_t user_ctrl;
+    register_read(MPUREG_USER_CTRL, &user_ctrl, 1);
+    _write(MPUREG_USER_CTRL, user_ctrl | BIT_USER_CTRL_I2C_MST_EN);
+    _write(MPUREG_I2C_MST_CTRL, I2C_MST_CLOCK_400KHZ);
+
+    return true;
+}
+
+void AP_AK8963_SerialBus_MPU9250::read_raw(struct raw_value *rv)
+{
+    _read(MPUREG_EXT_SENS_DATA_00, (uint8_t *) rv, sizeof(*rv));
+>>>>>>> 86b3312... AP_Compass: AK8963: factor out common code of read_raw()
 }
 
 AP_HAL::Semaphore * AP_AK8963_SerialBus_MPU9250::get_semaphore()
@@ -498,13 +584,11 @@ AP_HAL::Semaphore * AP_AK8963_SerialBus_MPU9250::get_semaphore()
 
 bool AP_AK8963_SerialBus_MPU9250::start_conversion()
 {
-    static const uint8_t address = AK8963_INFO;
-    /* Read registers from INFO through ST2 */
-    static const uint8_t count = 0x09;
+    const uint8_t count = sizeof(struct raw_value);
 
     configure();
     _write(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG);  /* Set the I2C slave addres of AK8963 and set for read. */
-    _write(MPUREG_I2C_SLV0_REG, address); /* I2C slave 0 register address from where to begin data transfer */
+    _write(MPUREG_I2C_SLV0_REG, AK8963_INFO); /* I2C slave 0 register address from where to begin data transfer */
     _write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | count); /* Enable I2C and set @count byte */
 
     return true;
@@ -530,6 +614,7 @@ void AP_Compass_AK8963::_register_read(uint8_t address, uint8_t *value, uint8_t 
     _bus_read(MPUREG_EXT_SENS_DATA_00, value, count);
 }
 
+<<<<<<< HEAD
 void AP_Compass_AK8963::_bus_read(uint8_t address, uint8_t *buf, uint32_t count)
 {
 <<<<<<< HEAD
@@ -566,6 +651,11 @@ void AP_Compass_AK8963::_bus_read(uint8_t address, uint8_t *buf, uint32_t count)
 
     return true;
 >>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+=======
+void AP_AK8963_SerialBus_I2C::read_raw(struct raw_value *rv)
+{
+    _i2c->readRegisters(_addr, AK8963_INFO, sizeof(*rv), (uint8_t *) rv);
+>>>>>>> 86b3312... AP_Compass: AK8963: factor out common code of read_raw()
 }
 
 void AP_Compass_AK8963::_bus_write(uint8_t address, const uint8_t *buf, uint32_t count)
