@@ -113,7 +113,6 @@ AP_Compass_AK8963::AP_Compass_AK8963(Compass &compass) :
 {
     _mag_x_accum =_mag_y_accum = _mag_z_accum = 0;
     _accum_count = 0;
-    _magnetometer_adc_resolution = AK8963_16BIT_ADC;
 }
 
 AP_Compass_Backend *AP_Compass_AK8963::detect(Compass &compass)
@@ -313,7 +312,11 @@ bool AP_Compass_AK8963::_configure_mpu9250()
 }
 
 bool AP_Compass_AK8963::_configure() {
+<<<<<<< HEAD
     _register_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | _magnetometer_adc_resolution);
+=======
+    _bus->register_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
+>>>>>>> 28d3d77... AP_Compass: AK8963: remove resolution member
     return true;
 }
 
@@ -333,8 +336,12 @@ bool AP_Compass_AK8963::_calibrate()
     _register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution); /* Enable FUSE-mode in order to be able to read calibreation data */
 =======
     /* Enable FUSE-mode in order to be able to read calibration data */
+<<<<<<< HEAD
     _bus->register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution);
 >>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+=======
+    _bus->register_write(AK8963_CNTL1, AK8963_FUSE_MODE | AK8963_16BIT_ADC);
+>>>>>>> 28d3d77... AP_Compass: AK8963: remove resolution member
 
     uint8_t response[3];
     _register_read(AK8963_ASAX, response, 3);
