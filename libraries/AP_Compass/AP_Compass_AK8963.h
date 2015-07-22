@@ -49,6 +49,7 @@ public:
 
 private:
 <<<<<<< HEAD
+<<<<<<< HEAD
     typedef enum
     {
         STATE_UNKNOWN,
@@ -61,6 +62,12 @@ private:
 
 =======
 >>>>>>> 27d95b6... AP_Compass: AK8963: remove state machine
+=======
+    void _make_factory_sensitivity_adjustment(Vector3f& field) const;
+    Vector3f _get_filtered_field() const;
+    void _reset_filter();
+
+>>>>>>> 8ab33c4... AP_Compass: revisited AK8963 code
     bool _reset();
     bool _setup_mode();
     bool _check_id();
