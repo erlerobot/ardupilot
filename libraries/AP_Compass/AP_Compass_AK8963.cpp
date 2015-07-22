@@ -91,7 +91,6 @@ extern const AP_HAL::HAL& hal;
 
 AP_Compass_AK8963::AP_Compass_AK8963(Compass &compass) :
     AP_Compass_Backend(compass),
-    _state(STATE_UNKNOWN),
     _initialized(false),
     _last_update_timestamp(0),
     _last_accum_time(0)
@@ -175,17 +174,23 @@ bool AP_Compass_AK8963::init()
         goto fail;
     }
 
-    _state = STATE_SAMPLE;
     _initialized = true;
 
     /* register the compass instance in the frontend */
     _compass_instance = register_compass();
+<<<<<<< HEAD
     set_dev_id(_compass_instance, AP_COMPASS_TYPE_AK8963_MPU9250);
 
     hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_Compass_AK8963::_update, void));
 
     _spi_sem->give();
 
+=======
+    set_dev_id(_compass_instance, _bus->get_dev_id());
+    hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_Compass_AK8963::_update, void));
+
+    _bus_sem->give();
+>>>>>>> 27d95b6... AP_Compass: AK8963: remove state machine
     hal.scheduler->resume_timer_procs();
 
     return true;
@@ -239,6 +244,7 @@ void AP_Compass_AK8963::_update()
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     switch (_state)
     {
         case STATE_SAMPLE:
@@ -268,6 +274,35 @@ void AP_Compass_AK8963::_update()
     default:
         break;
 >>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+=======
+    struct AP_AK8963_SerialBus::raw_value rv;
+
+    _bus->read_raw(&rv);
+
+    /* Check for overflow. See AK8963's datasheet, section
+     * 6.4.3.6 - Magnetic Sensor Overflow. */
+    if ((rv.st2 & 0x08)) {
+        return;
+    }
+
+    float mag_x = (float) rv.val[0];
+    float mag_y = (float) rv.val[1];
+    float mag_z = (float) rv.val[2];
+
+    if (is_zero(mag_x) && is_zero(mag_y) && is_zero(mag_z)) {
+        return;
+    }
+
+    _mag_x_accum += mag_x;
+    _mag_y_accum += mag_y;
+    _mag_z_accum += mag_z;
+    _accum_count++;
+    if (_accum_count == 10) {
+        _mag_x_accum /= 2;
+        _mag_y_accum /= 2;
+        _mag_z_accum /= 2;
+        _accum_count = 5;
+>>>>>>> 27d95b6... AP_Compass: AK8963: remove state machine
     }
 
     _last_update_timestamp = hal.scheduler->micros();
@@ -376,6 +411,7 @@ bool AP_Compass_AK8963::_start_conversion()
     return true;
 }
 
+<<<<<<< HEAD
 bool AP_Compass_AK8963::_collect_samples()
 {
     struct AP_AK8963_SerialBus::raw_value rv;
@@ -415,6 +451,8 @@ bool AP_Compass_AK8963::_collect_samples()
     return true;
 }
 
+=======
+>>>>>>> 27d95b6... AP_Compass: AK8963: remove state machine
 bool AP_Compass_AK8963::_sem_take_blocking()
 {
     return _spi_sem->take(10);
@@ -604,7 +642,6 @@ bool AP_AK8963_SerialBus_MPU9250::start_measurements()
 {
     const uint8_t count = sizeof(struct raw_value);
 
-    configure();
     _write(MPUREG_I2C_SLV0_ADDR, AK8963_I2C_ADDR | READ_FLAG);  /* Set the I2C slave addres of AK8963 and set for read. */
     _write(MPUREG_I2C_SLV0_REG, AK8963_INFO); /* I2C slave 0 register address from where to begin data transfer */
     _write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | count); /* Enable I2C and set @count byte */
