@@ -140,28 +140,38 @@ bool AP_Compass_AK8963::init()
         goto fail_sem;
     }
 
+<<<<<<< HEAD
     if (!_configure_mpu9250()) {
         hal.console->printf_P(PSTR("AK8963: MPU9250 not configured for AK8963\n"));
-        goto fail;
-    }
-
-    if (!_configure()) {
-        hal.console->printf_P(PSTR("AK8963: not configured\n"));
+=======
+    if (!_bus->configure()) {
+        hal.console->printf("AK8963: Could not configure bus for AK8963\n");
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
         goto fail;
     }
 
     if (!_check_id()) {
-        hal.console->printf_P(PSTR("AK8963: wrong id\n"));
+        hal.console->printf("AK8963: Wrong id\n");
         goto fail;
     }
 
     if (!_calibrate()) {
-        hal.console->printf_P(PSTR("AK8963: not calibrated\n"));
+        hal.console->printf("AK8963: Could not read calibration data\n");
         goto fail;
     }
 
+    if (!_setup_mode()) {
+        hal.console->printf("AK8963: Could not setup mode\n");
+        goto fail;
+    }
+
+<<<<<<< HEAD
     if (!_start_conversion()) {
         hal.console->printf_P(PSTR("AK8963: conversion not started\n"));
+=======
+    if (!_bus->start_measurements()) {
+        hal.console->printf("AK8963: Could not start measurments\n");
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
         goto fail;
     }
 
@@ -251,7 +261,7 @@ void AP_Compass_AK8963::_update()
         }
         break;
     case STATE_ERROR:
-        if (_bus->start_conversion()) {
+        if (_bus->start_measurements()) {
             _state = STATE_SAMPLE;
         }
         break;
@@ -283,6 +293,7 @@ bool AP_Compass_AK8963::_check_id()
     return false;
 }
 
+<<<<<<< HEAD
 bool AP_Compass_AK8963::_configure_mpu9250()
 {
     if (!AP_InertialSensor_MPU9250::initialize_driver_state())
@@ -300,6 +311,9 @@ bool AP_Compass_AK8963::_configure() {
 <<<<<<< HEAD
     _register_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | _magnetometer_adc_resolution);
 =======
+=======
+bool AP_Compass_AK8963::_setup_mode() {
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
     _bus->register_write(AK8963_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 >>>>>>> 28d3d77... AP_Compass: AK8963: remove resolution member
     return true;
@@ -315,11 +329,14 @@ bool AP_Compass_AK8963::_reset()
 
 bool AP_Compass_AK8963::_calibrate()
 {
+<<<<<<< HEAD
     uint8_t cntl1 = _register_read(AK8963_CNTL1);
 
 <<<<<<< HEAD
     _register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution); /* Enable FUSE-mode in order to be able to read calibreation data */
 =======
+=======
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
     /* Enable FUSE-mode in order to be able to read calibration data */
 <<<<<<< HEAD
     _bus->register_write(AK8963_CNTL1, AK8963_FUSE_MODE | _magnetometer_adc_resolution);
@@ -337,6 +354,7 @@ bool AP_Compass_AK8963::_calibrate()
         error("%d: %lf\n", i, _magnetometer_ASA[i]);
     }
 
+<<<<<<< HEAD
     _register_write(AK8963_CNTL1, cntl1);
 
     return true;
@@ -353,6 +371,8 @@ bool AP_Compass_AK8963::_start_conversion()
     _bus_write(MPUREG_I2C_SLV0_REG, address); /* I2C slave 0 register address from where to begin data transfer */
     _bus_write(MPUREG_I2C_SLV0_CTRL, I2C_SLV0_EN | count); /* Enable I2C and set @count byte */
 
+=======
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
     return true;
 }
 
@@ -429,10 +449,16 @@ bool AP_Compass_AK8963::_sem_take_nonblocking()
     if (!hal.scheduler->system_initializing() ) {
         _sem_failure_count++;
         if (_sem_failure_count > 100) {
+<<<<<<< HEAD
             hal.scheduler->panic(PSTR("PANIC: failed to take _bus->sem "
                                       "100 times in a row, in "
                                       "AP_Compass_AK8963"));
 >>>>>>> d941174... AP_Compass: AK8963: enhance the readability
+=======
+            hal.scheduler->panic("PANIC: failed to take _bus->sem "
+                                 "100 times in a row, in "
+                                 "AP_Compass_AK8963");
+>>>>>>> e232543... AP_Compass: AK8963: change initialization and rename methods
         }
     }
 
@@ -503,7 +529,7 @@ AP_AK8963_SerialBus_MPU9250::AP_AK8963_SerialBus_MPU9250()
     _spi = hal.spi->device(AP_HAL::SPIDevice_MPU9250);
 
     if (_spi == NULL) {
-        hal.console->println_P(PSTR("Cannot get SPIDevice_MPU9250"));
+        hal.console->printf("Cannot get SPIDevice_MPU9250\n");
         return;
     }
 }
@@ -574,7 +600,7 @@ AP_HAL::Semaphore * AP_AK8963_SerialBus_MPU9250::get_semaphore()
     return _spi->get_semaphore();
 }
 
-bool AP_AK8963_SerialBus_MPU9250::start_conversion()
+bool AP_AK8963_SerialBus_MPU9250::start_measurements()
 {
     const uint8_t count = sizeof(struct raw_value);
 
