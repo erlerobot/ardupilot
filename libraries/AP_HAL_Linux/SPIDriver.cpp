@@ -39,7 +39,7 @@ LinuxSPIDeviceDriver LinuxSPIDeviceManager::_device[] = {
     /* MPU9250 is restricted to 1MHz for non-data and interrupt registers */
     LinuxSPIDeviceDriver(0, 1, AP_HAL::SPIDevice_MPU9250, SPI_MODE_0, 8, SPI_CS_KERNEL,  1*MHZ, 16*MHZ),
     //LinuxSPIDeviceDriver(0, 0, AP_HAL::SPIDevice_Ublox, SPI_MODE_0, 8, SPI_CS_KERNEL,  250*KHZ, 4*MHZ),
-    LinuxSPIDeviceDriver(0, 0, AP_HAL::SPIDevice_MS5611,  SPI_MODE_0, 8, SPI_CS_KERNEL,  500*KHZ,1*MHZ), 
+    LinuxSPIDeviceDriver(0, 0, AP_HAL::SPIDevice_MS5611,  SPI_MODE_0, 8, SPI_CS_KERNEL,  500*KHZ,10*MHZ), 
     //LinuxSPIDeviceDriver(0, 1, AP_HAL::SPIDevice_MPU9250, SPI_MODE_0, 8, SPI_CS_KERNEL,  1*MHZ, 16*MHZ),   
 };
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI
