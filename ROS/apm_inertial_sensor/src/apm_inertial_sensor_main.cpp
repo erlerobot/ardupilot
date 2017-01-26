@@ -10,28 +10,11 @@
 //const HAL_Linux AP_HAL_Linux;
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 AP_InertialSensor ins;
+apm_inertial_sensor::apm_imu msg;
+ros::Publisher imu_pub;
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "apm_inertial_sensor");
-
-  std::string topic_name = std::string("apm_inertial_sensor");
-  //std::cout << topic_name << std::endl;
-
-  ros::NodeHandle n;
-  ros::Publisher imu_pub = n.advertise<apm_inertial_sensor::apm_imu>(topic_name, 1000);
-  apm_inertial_sensor::apm_imu msg;
-
-  // init APM Linux HAL
-  hal.init(NULL, NULL);
-
-  // init the IMU
-    ins.init(AP_InertialSensor::COLD_START, 
-             AP_InertialSensor::RATE_100HZ);
-
-  ros::Rate loop_rate(10);
-  while (ros::ok()){
-    ins.wait_for_sample();
+void callback(const ros::TimerEvent&){
+    //ins.wait_for_sample();
     // Update IMU values
     ins.update();
     // gyro = ins.get_gyro();
@@ -42,8 +25,30 @@ int main(int argc, char **argv)
     msg.accel = {ins.get_accel().x, ins.get_accel().y, ins.get_accel().z};
 
     imu_pub.publish(msg);
-    ros::spinOnce();
-    loop_rate.sleep();
-  }  
+}
+
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "apm_inertial_sensor");
+
+  std::string topic_name = std::string("apm_inertial_sensor");
+
+  ros::NodeHandle n;
+  imu_pub = n.advertise<apm_inertial_sensor::apm_imu>(topic_name, 1000);
+
+  // init APM Linux HAL
+  hal.init(argc, argv);
+  hal.scheduler->system_initialized();
+
+  // init the IMU
+  ins.init(AP_InertialSensor::WARM_START, AP_InertialSensor::RATE_100HZ);
+  // Read sensors data 100 times in a second
+
+  ros::Timer timer = n.createTimer(ros::Duration(0.1), callback);
+  // Execute callback function every 0.1 seconds, change Duration(x) to adapt it for your purpose
+
+  ros::spin();
+
   return 0;
 }
